@@ -25,9 +25,7 @@ class ProjectFactory extends Factory
 
     public function sdlc(): static
     {
-        return $this->state(fn () => [
-            'type' => ProjectType::Sdlc,
-            'current_phase' => \App\Enums\ProjectPhase::Requirements,
-        ]);
+        return $this->state(fn () => ['type' => ProjectType::Sdlc])
+            ->afterCreating(fn ($project) => \App\Models\Phase::seedSdlc($project));
     }
 }

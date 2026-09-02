@@ -3,16 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Priority;
-use App\Enums\ProjectPhase;
 use App\Enums\ProjectStatus;
 use App\Enums\ProjectType;
 use App\Enums\TaskStatus;
 use App\Enums\WorkStatus;
+use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ServiceLine;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
@@ -23,7 +22,7 @@ class ProjectController extends Controller
             ->status($request->input('status'))
             ->ownedBy($request->input('owner'))
             ->when($request->boolean('overdue'), fn ($qq) => $qq->whereDate('target_deadline', '<', now())->whereNotIn('status', [ProjectStatus::Completed->value, ProjectStatus::Cancelled->value]))
-            ->with(['owners', 'serviceLine', 'tender', 'serviceRequest'])
+            ->with(['owners', 'serviceLine', 'tender', 'serviceRequest', 'phases'])
             ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
@@ -40,17 +39,18 @@ class ProjectController extends Controller
     {
         $project->load([
             'owners', 'serviceLine', 'tender', 'serviceRequest',
-            'milestones.featureSets.tasks.assignees',
-            'milestones.featureSets.tasks.subtasks',
-            'milestones.featureSets.tasks.scopeItems',
+            'phases.assignees', 'phases.gateSignedBy',
+            'phases.scopeItems.tasks',
+            'phases.milestones.featureSets.tasks.assignees',
+            'phases.milestones.featureSets.tasks.subtasks',
+            'phases.milestones.featureSets.tasks.scopeItems',
             'scopeItems.tasks',
-            'phaseSignoffs.signer',
             'comments.user', 'comments.mentions', 'attachments.user', 'auditLogs.user',
         ]);
 
         return view('projects.show', [
             'project' => $project,
-            'phases' => ProjectPhase::cases(),
+            'currentPhase' => $project->currentPhase(),
             'workStatuses' => WorkStatus::options(),
             'taskStatuses' => TaskStatus::options(),
             'members' => User::orderBy('name')->get(),
@@ -66,10 +66,13 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateData($request);
-        $data['current_phase'] = ($data['type'] ?? null) === ProjectType::Sdlc->value ? ProjectPhase::Requirements->value : null;
 
         $project = Project::create($data);
         $project->syncOwners($request->input('owner_ids') ?: [$request->user()->id]);
+
+        if ($project->type === ProjectType::Sdlc) {
+            Phase::seedSdlc($project);
+        }
 
         return redirect()->route('projects.show', $project)->with('status', 'Project created.');
     }
@@ -103,50 +106,6 @@ class ProjectController extends Controller
         $project->delete();
 
         return redirect()->route('projects.index')->with('status', 'Project deleted.');
-    }
-
-    public function advancePhase(Request $request, Project $project)
-    {
-        if (! $project->usesPhases() || ! $project->current_phase) {
-            return back()->with('error', 'This project does not use SDLC phases.');
-        }
-
-        $next = $project->current_phase->next();
-        if (! $next) {
-            return back()->with('error', 'The project is already in the final phase.');
-        }
-
-        $data = $request->validate([
-            'note' => ['nullable', 'string', 'max:2000'],
-            'force' => ['sometimes', 'boolean'],
-        ]);
-
-        $incomplete = $project->incompleteMilestonesForPhase($project->current_phase);
-        $wantsForce = $request->boolean('force');
-
-        if ($incomplete->isNotEmpty()) {
-            if (Project::phaseGatesEnforced() || ! $wantsForce || ! $request->user()->isAdmin()) {
-                return back()->with('error',
-                    $incomplete->count().' '.$project->current_phase->label().' milestone(s) are not Done.'
-                    .(Project::phaseGatesEnforced() ? '' : ' A system administrator can override with the force option.'));
-            }
-        }
-
-        $from = $project->current_phase;
-
-        DB::transaction(function () use ($project, $from, $next, $request, $data, $incomplete, $wantsForce) {
-            $project->forceFill(['current_phase' => $next->value])->save();
-            $project->phaseSignoffs()->create([
-                'phase' => $from->value,
-                'signed_by' => $request->user()->id,
-                'note' => $data['note'] ?? null,
-                'forced' => $incomplete->isNotEmpty() && $wantsForce,
-                'signed_at' => now(),
-            ]);
-            $project->audit('phase_advanced', ['phase' => $from->value], ['phase' => $next->value]);
-        });
-
-        return back()->with('status', 'Signed off '.$from->label().' — now in '.$next->label().'.');
     }
 
     private function form(Project $project)

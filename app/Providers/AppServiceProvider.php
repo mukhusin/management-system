@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\FeatureSet;
 use App\Models\Milestone;
+use App\Models\Phase;
 use App\Models\Subtask;
 use App\Models\Task;
 use App\Models\User;
@@ -28,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerPermissionGates();
 
-        foreach ([Subtask::class, Task::class, FeatureSet::class, Milestone::class] as $model) {
+        foreach ([Subtask::class, Task::class, FeatureSet::class, Milestone::class, Phase::class] as $model) {
             $model::observe(ProgressRollupObserver::class);
         }
     }

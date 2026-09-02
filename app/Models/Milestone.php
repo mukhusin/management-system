@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\ProjectPhase;
 use App\Enums\WorkStatus;
 use App\Models\Concerns\HasComments;
 use App\Models\Concerns\HasDueDate;
@@ -22,18 +21,22 @@ class Milestone extends Model
     use RollsUpProgress;
 
     protected $fillable = [
-        'project_id', 'name', 'description', 'phase', 'status', 'due_date', 'position',
+        'project_id', 'phase_id', 'name', 'description', 'status', 'due_date', 'position',
     ];
 
     protected $casts = [
         'status' => WorkStatus::class,
-        'phase' => ProjectPhase::class,
         'due_date' => 'date',
     ];
 
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function phase(): BelongsTo
+    {
+        return $this->belongsTo(Phase::class);
     }
 
     public function featureSets(): HasMany
@@ -48,6 +51,6 @@ class Milestone extends Model
 
     public function progressParent(): ?Model
     {
-        return $this->project;
+        return $this->phase()->first();
     }
 }

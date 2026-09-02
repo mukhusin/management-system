@@ -23,8 +23,15 @@ Read `README.md` first. Key structure:
 - **Promotion** — `ProjectInitiator::fromTender()` / `fromServiceRequest()`;
   also seeds `scope_items` by splitting the tender/request scope text.
 - **Traceability** — `ScopeItem` (project) <-> `Task` via `scope_item_task`;
-  `Project::scopeCoverage()`. **Phase gates** — `config/projects.php`
-  (`ENFORCE_PHASE_GATES`), `PhaseSignoff` records, `Project::workAllowedInPhase()`.
+  `Project::scopeCoverage()`. Requirements attach to a `Phase` (`phase_id`) or
+  stay project-level (`phase_id` null).
+- **Hierarchy** — Project → **Phase** → Milestone → Feature Set → Task → Sub-task.
+  A `Phase` has its own description, `assignees()`, requirements (`scopeItems()`)
+  and milestones; SDLC projects auto-seed 5 phases (`Phase::seedSdlc`). Progress
+  rolls up through every level. `Project::currentPhase()` = first not-signed-off
+  phase. **Phase gates** — `config/projects.php` (`ENFORCE_PHASE_GATES`),
+  `PhaseController::signOff` writes the gate fields onto the phase row +
+  audit `phase_signed_off`; `Project::workAllowedInPhase(Phase)`.
 - **Editor** — `partials/_editor.blade.php` enhances `textarea[data-editor]`
   (comments); endpoints `/mentions`, `POST /comments/preview`. Layout provides
   `@stack('foot')` + csrf meta.

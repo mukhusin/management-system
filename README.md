@@ -2,15 +2,16 @@
 
 A Laravel 13 back-office for EMREC Consulting: track **tenders** through their
 lifecycle, log inbound **service requests**, turn won opportunities into
-**SDLC projects** with a milestone → feature-set → task → sub-task breakdown,
+**projects** organised as phase → milestone → feature-set → task → sub-task,
 and keep everything else on a generic **business tracker**. Role-based access,
 an immutable audit trail, optimistic concurrency, threaded comments with
 `@mentions`, and file attachments throughout.
 
 > This grew out of a tender aggregator. The World Bank ingestion
 > (`php artisan tenders:fetch`) still works and feeds the Tenders module.
-> **Phase 1** (core system) and **Phase 2** (requirements traceability,
-> stage-gate enforcement, markdown editor) are done. **Phase 3** is next:
+> **Phase 1** (core), **Phase 2** (traceability,
+> stage gates, markdown editor) and first-class **project phases** are done.
+> **Phase 3** is next:
 > Laravel Reverb real-time + fault-tolerant ingestion workers + TED/UNGM
 > sources.
 
@@ -60,20 +61,22 @@ temporary password is shown once).
 - **Service Requests** (`/service-requests`) — inbound enquiries with their own
   machine `New → Qualified → Quoted → Won → Engaged`, `Declined`/`Lost` exits.
   A **Won** request promotes to a project and moves to `Engaged`.
-- **Projects** (`/projects`) — `type` is `sdlc` (uses the 5 stage-gated
-  phases) or `engagement` (milestone-only). Work breaks down
-  **Milestone → Feature Set → Task → Sub-task**; ticking a sub-task rolls
-  progress up to the project (cached `progress` columns, kept current by
+- **Projects** (`/projects`) — the work breakdown is
+  **Phase → Milestone → Feature Set → Task → Sub-task**. Each **phase** carries
+  its own description, assignees, requirements and milestones; `sdlc` projects
+  are auto-seeded with the 5 SDLC phases, `engagement` projects start empty and
+  you add phases freely. Ticking a sub-task rolls progress up through every
+  level to the project (cached `progress`, kept current by
   `ProgressRollupObserver`). `My Work` (`/my-work`) lists your tasks.
-  - **Requirements traceability** — a project has `scope_items` (auto-created
-    by splitting the tender's scope statement on promotion, plus manual ones),
-    each linked many-to-many to the tasks that satisfy it. The project shows a
-    coverage bar; uncovered requirements are flagged.
-  - **Stage gates** — advancing a phase records a `phase_signoffs` entry (who,
-    when, note) and is audited. Set `ENFORCE_PHASE_GATES=true` (see
-    `config/projects.php`) to hard-block advancing while current-phase
-    milestones are open and block creating work under future-phase milestones;
-    otherwise a `system_admin` can force past open milestones.
+  - **Requirements traceability** — requirements (`scope_items`) attach to a
+    phase, or stay project-level. Promotion auto-creates them by splitting the
+    tender's scope statement. Each is linked many-to-many to the tasks that
+    satisfy it; coverage bars per phase and project-wide flag uncovered items.
+  - **Stage gates** — signing off a phase records who / when / note on the
+    phase row and audits `phase_signed_off`, then opens the next phase. Set
+    `ENFORCE_PHASE_GATES=true` (`config/projects.php`) to hard-block sign-off
+    while the phase's milestones are open and block adding milestones to a
+    later phase; otherwise a `system_admin` can force past open milestones.
 - **Editor** — comment boxes use a dependency-free markdown editor: toolbar,
   `@`-triggered mention autocomplete (`/mentions`), and a server-rendered
   preview (`/comments/preview`, same pipeline as a saved comment).

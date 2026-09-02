@@ -51,7 +51,7 @@ class MultiOwnerTest extends TestCase
     {
         $pm = User::factory()->role(UserRole::ProjectManager)->create();
         $dev = User::factory()->role(UserRole::DevMember)->create();
-        $featureSet = FeatureSet::factory()->for(Milestone::factory()->for(Project::factory()))->create();
+        $featureSet = FeatureSet::factory()->for(Milestone::factory())->create();
 
         $this->actingAs($pm)->post("/feature-sets/{$featureSet->id}/tasks", [
             'title' => 'Shared task',

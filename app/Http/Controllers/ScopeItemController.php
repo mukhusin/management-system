@@ -14,16 +14,21 @@ class ScopeItemController extends Controller
 
         $data = $request->validate([
             'description' => ['required', 'string', 'max:2000'],
+            'phase_id' => ['nullable', 'integer'],
         ]);
 
-        $project->scopeItems()->create([
+        // A phase filter is only honoured if it belongs to this project.
+        $phaseId = $project->phases()->whereKey($data['phase_id'] ?? null)->value('id');
+
+        $project->allScopeItems()->create([
+            'phase_id' => $phaseId,
             'code' => $project->nextScopeCode(),
             'description' => $data['description'],
             'source' => 'manual',
-            'position' => (int) $project->scopeItems()->max('position') + 1,
+            'position' => (int) $project->allScopeItems()->max('position') + 1,
         ]);
 
-        return back()->with('status', 'Scope item added.');
+        return back()->with('status', 'Requirement added.');
     }
 
     public function update(Request $request, ScopeItem $scopeItem)

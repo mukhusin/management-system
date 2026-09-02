@@ -11,11 +11,16 @@ class ScopeItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['project_id', 'code', 'description', 'source', 'position'];
+    protected $fillable = ['project_id', 'phase_id', 'code', 'description', 'source', 'position'];
 
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function phase(): BelongsTo
+    {
+        return $this->belongsTo(Phase::class);
     }
 
     public function tasks(): BelongsToMany

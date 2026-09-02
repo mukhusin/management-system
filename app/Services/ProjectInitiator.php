@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Enums\ProjectPhase;
 use App\Enums\ProjectType;
 use App\Enums\ServiceRequestState;
 use App\Enums\TenderState;
+use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ServiceLine;
 use App\Models\ServiceRequest;
@@ -47,13 +47,12 @@ class ProjectInitiator
                 'budget' => $tender->estimated_value ?? $tender->value,
                 'currency' => $tender->currency,
                 'target_deadline' => $tender->deadline_date,
-                'current_phase' => null,
             ]);
 
             $owners = $tender->owners->pluck('id');
             $project->owners()->sync($owners->isEmpty() ? [$actor->id] : $owners->all());
 
-            $this->applyPhaseDefault($project);
+            $this->seedPhases($project);
             $this->seedScopeItems($project, $tender->scope_statement);
 
             $tender->audit('project_initiated', null, ['project_id' => $project->id]);
@@ -84,12 +83,11 @@ class ProjectInitiator
                 'client' => $request->client ?? $request->contact_name,
                 'budget' => $request->estimated_value,
                 'currency' => $request->currency,
-                'current_phase' => null,
             ]);
 
             $project->owners()->sync([$request->owner_id ?? $actor->id]);
 
-            $this->applyPhaseDefault($project);
+            $this->seedPhases($project);
             $this->seedScopeItems($project, $request->details ?: $request->summary);
 
             $request->audit('project_initiated', null, ['project_id' => $project->id]);
@@ -109,10 +107,10 @@ class ProjectInitiator
             : ProjectType::Engagement;
     }
 
-    private function applyPhaseDefault(Project $project): void
+    private function seedPhases(Project $project): void
     {
         if ($project->type === ProjectType::Sdlc) {
-            $project->forceFill(['current_phase' => ProjectPhase::Requirements->value])->save();
+            Phase::seedSdlc($project);
         }
     }
 
@@ -132,8 +130,12 @@ class ProjectInitiator
             ->unique()
             ->values();
 
+        // Attach to the first phase (e.g. "Requirements") when the project has one.
+        $phaseId = $project->phases()->orderBy('position')->value('id');
+
         foreach ($lines as $i => $description) {
-            $project->scopeItems()->create([
+            $project->allScopeItems()->create([
+                'phase_id' => $phaseId,
                 'code' => 'S'.($i + 1),
                 'description' => $description,
                 'source' => 'tender',

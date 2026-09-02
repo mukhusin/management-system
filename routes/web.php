@@ -9,6 +9,7 @@ use App\Http\Controllers\FeatureSetController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\MentionController;
 use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\PhaseController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ScopeItemController;
@@ -57,11 +58,12 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:projects.edit')->group(function () {
         Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
         Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
-        Route::patch('projects/{project}/advance-phase', [ProjectController::class, 'advancePhase'])->name('projects.advance-phase');
+        Route::patch('phases/{phase}/sign-off', [PhaseController::class, 'signOff'])->name('phases.sign-off');
     });
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
-    Route::resource('projects.milestones', MilestoneController::class)->shallow()->only(['store', 'update', 'destroy'])->middleware('can:projects.manage_work');
+    Route::resource('projects.phases', PhaseController::class)->shallow()->only(['store', 'update', 'destroy'])->middleware('can:projects.manage_work');
+    Route::resource('phases.milestones', MilestoneController::class)->shallow()->only(['store', 'update', 'destroy'])->middleware('can:projects.manage_work');
     Route::resource('milestones.feature-sets', FeatureSetController::class)->shallow()->only(['store', 'update', 'destroy'])->middleware('can:projects.manage_work');
     Route::resource('feature-sets.tasks', TaskController::class)->shallow()->only(['store', 'update', 'destroy'])->middleware('can:projects.manage_work');
     Route::resource('tasks.subtasks', SubtaskController::class)->shallow()->only(['store', 'update', 'destroy']);

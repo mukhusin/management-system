@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\FeatureSet;
 use App\Models\Milestone;
+use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ScopeItem;
 use App\Models\Task;
@@ -26,10 +27,11 @@ class ScopeTraceabilityTest extends TestCase
 
         $project = app(ProjectInitiator::class)->fromTender($tender, User::factory()->role(UserRole::ProjectManager)->create());
 
-        $this->assertCount(3, $project->scopeItems);
-        $this->assertSame('S1', $project->scopeItems->first()->code);
-        $this->assertSame('Build the intake form', $project->scopeItems->first()->description);
-        $this->assertSame('tender', $project->scopeItems->first()->source);
+        $items = $project->allScopeItems;
+        $this->assertCount(3, $items);
+        $this->assertSame('S1', $items->first()->code);
+        $this->assertSame('Build the intake form', $items->first()->description);
+        $this->assertSame('tender', $items->first()->source);
     }
 
     public function test_coverage_reflects_linked_tasks(): void
@@ -41,11 +43,11 @@ class ScopeTraceabilityTest extends TestCase
         $this->assertSame(0, $project->scopeCoverage()['percent']);
 
         $task = Task::factory()->for(
-            FeatureSet::factory()->for(Milestone::factory()->for($project))
+            FeatureSet::factory()->for(Milestone::factory()->for(Phase::factory()->for($project)))
         )->create();
         $a->tasks()->attach($task);
 
-        $this->assertSame(50, $project->fresh()->load('scopeItems.tasks')->scopeCoverage()['percent']);
+        $this->assertSame(50, $project->fresh()->load('allScopeItems.tasks')->scopeCoverage()['percent']);
     }
 
     public function test_update_endpoint_links_only_same_project_tasks(): void
@@ -54,7 +56,7 @@ class ScopeTraceabilityTest extends TestCase
         $project = Project::factory()->create();
         $item = ScopeItem::factory()->for($project)->create();
 
-        $mine = Task::factory()->for(FeatureSet::factory()->for(Milestone::factory()->for($project)))->create();
+        $mine = Task::factory()->for(FeatureSet::factory()->for(Milestone::factory()->for(Phase::factory()->for($project))))->create();
         $foreign = Task::factory()->create();
 
         $this->actingAs($pm)->put("/scope-items/{$item->id}", [
