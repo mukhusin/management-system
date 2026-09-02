@@ -1,84 +1,59 @@
 @extends('layouts.app')
-
-@section('title', 'Tender & Aid Opportunities')
+@section('title', 'Tenders')
 
 @section('content')
-    <div class="card">
-        <form method="GET" class="filters">
-            <div>
-                <label for="q">Search</label>
-                <input type="text" id="q" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="keyword, buyer...">
-            </div>
-            <div>
-                <label for="source">Source</label>
-                <select id="source" name="source">
-                    <option value="">All sources</option>
-                    @foreach ($sources as $source)
-                        <option value="{{ $source }}" @selected(($filters['source'] ?? '') === $source)>
-                            {{ ucfirst(str_replace('_', ' ', $source)) }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label for="country">Country</label>
-                <select id="country" name="country">
-                    <option value="">All countries</option>
-                    @foreach ($countries as $country)
-                        <option value="{{ $country }}" @selected(($filters['country'] ?? '') === $country)>
-                            {{ $country }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label for="open_only">Status</label>
-                <select id="open_only" name="open_only">
-                    <option value="1" @selected(($filters['open_only'] ?? '1') == '1')>Open only</option>
-                    <option value="0" @selected(($filters['open_only'] ?? '1') == '0')>Include closed</option>
-                </select>
-            </div>
-            <div>
-                <button type="submit">Filter</button>
-            </div>
-        </form>
-    </div>
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Tenders</h1>
+    @can('tenders.create')<a href="{{ route('tenders.create') }}" class="btn">+ Register tender</a>@endcan
+</div>
 
-    @forelse ($tenders as $tender)
-        <div class="card">
-            <span class="badge">{{ ucfirst(str_replace('_', ' ', $tender->source)) }}</span>
-            @if ($tender->country)
-                <span class="badge">{{ $tender->country }}</span>
-            @endif
-
-            <div class="tender-title">
-                <a href="{{ route('tenders.show', $tender) }}">{{ $tender->title }}</a>
-            </div>
-
-            <div class="meta">
-                @if ($tender->buyer)
-                    {{ $tender->buyer }} &middot;
-                @endif
-                @if ($tender->source === 'manual' && $tender->user)
-                    Added by {{ $tender->user->name }} &middot;
-                @endif
-                @if ($tender->deadline_date)
-                    <span class="{{ $tender->isClosingSoon() ? 'deadline-soon' : '' }}">
-                        Deadline: {{ $tender->deadline_date->format('d M Y') }}
-                        ({{ $tender->deadlineCountdown() }})
-                    </span>
-                @else
-                    No deadline listed
-                @endif
-            </div>
+<div class="card">
+    <form method="GET" class="filters">
+        <div><label>Search</label><input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="title, buyer, client"></div>
+        <div><label>State</label>
+            <select name="state"><option value="">Any state</option>
+                @foreach ($states as $s)<option value="{{ $s['value'] }}" @selected(($filters['state'] ?? '') === $s['value'])>{{ $s['label'] }}</option>@endforeach
+            </select>
         </div>
-    @empty
-        <div class="card">
-            No opportunities found yet. Run <code>php artisan tenders:fetch</code> to pull in the latest notices.
+        <div><label>Owner</label>
+            <select name="owner"><option value="">Anyone</option>
+                @foreach ($owners as $o)<option value="{{ $o->id }}" @selected((string)($filters['owner'] ?? '') === (string)$o->id)>{{ $o->name }}</option>@endforeach
+            </select>
         </div>
-    @endforelse
+        <div><label>Source</label>
+            <select name="source"><option value="">All sources</option>
+                @foreach ($sources as $s)<option value="{{ $s }}" @selected(($filters['source'] ?? '') === $s)>{{ ucfirst(str_replace('_',' ',$s)) }}</option>@endforeach
+            </select>
+        </div>
+        <div><label>Country</label>
+            <select name="country"><option value="">All countries</option>
+                @foreach ($countries as $c)<option value="{{ $c }}" @selected(($filters['country'] ?? '') === $c)>{{ $c }}</option>@endforeach
+            </select>
+        </div>
+        <div><label><input type="checkbox" name="open_only" value="1" @checked(!empty($filters['open_only']))> Open only</label></div>
+        <div><button type="submit">Filter</button></div>
+    </form>
+</div>
 
-    <div class="pagination">
-        {{ $tenders->links() }}
-    </div>
+<div class="card">
+    <table class="grid">
+        <thead><tr><th>Title</th><th>State</th><th>Owner</th><th>Service line</th><th>Deadline</th><th>Value</th></tr></thead>
+        <tbody>
+        @forelse ($tenders as $tender)
+            <tr>
+                <td><a href="{{ route('tenders.show', $tender) }}">{{ $tender->title }}</a>
+                    <div class="muted">{{ $tender->client ?? $tender->buyer }} @if($tender->country)· {{ $tender->country }}@endif</div></td>
+                <td>@include('partials._badge', ['enum' => $tender->state])</td>
+                <td>{{ $tender->owner?->name ?? '—' }}</td>
+                <td>{{ $tender->serviceLine?->name ?? '—' }}</td>
+                <td>@include('partials._due', ['model' => $tender, 'label' => 'Deadline'])</td>
+                <td>@if($tender->value){{ number_format($tender->value) }} {{ $tender->currency }}@else—@endif</td>
+            </tr>
+        @empty
+            <tr><td colspan="6" class="muted">No tenders. Run <code>php artisan tenders:fetch</code> or register one.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
+    <div class="pagination">{{ $tenders->links() }}</div>
+</div>
 @endsection

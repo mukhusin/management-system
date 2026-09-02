@@ -1,3 +1,31 @@
+# EMREC TPMS — orientation for agents
+
+Laravel 13 tender + project management system (grew out of a tender aggregator).
+Read `README.md` first. Key structure:
+
+- **Enums** `app/Enums/` — every status/role/priority is a backed enum with
+  `label()`, `color()`, `options()` (via `EnumHelpers`).
+- **Model concerns** `app/Models/Concerns/` — `HasDueDate` (countdowns),
+  `HasOptimisticLock` (`updateWithLock($data, $expectedVersion)`),
+  `HasComments` / `HasAttachments` (polymorphic), `LogsAudit`
+  (`$model->audit($event, $old, $new)`; auto "created"), `RollsUpProgress`
+  (cached `progress`, driven by `ProgressRollupObserver`).
+- **RBAC** — `config/permissions.php` catalog + role defaults; gates registered
+  in `AppServiceProvider`; per-user grants/revokes in `permission_overrides`.
+  Check with `->middleware('can:x')`, `$user->can('x')`, `@can`.
+- **State machines** — `TenderStateMachine`, `ServiceRequestStateMachine`
+  (`apply($model, $toState, $actor, $note)`); transitions defined on the enums.
+- **Promotion** — `ProjectInitiator::fromTender()` / `fromServiceRequest()`.
+- **Audit** (`audit_logs`) is append-only — the model throws on update/delete.
+- Tests run against MySQL `tender_aggregator_test` (no `pdo_sqlite` on this box).
+- Ingestion (`app/Services/*TenderService`, `tenders:fetch`) is unchanged from
+  the aggregator; don't break `WorldBankTenderServiceTest`.
+
+The full plan (phases 1–3) lives in
+`~/.claude/plans/agile-doodling-stardust.md`.
+
+---
+
 <laravel-boost-guidelines>
 # Laravel Application
 

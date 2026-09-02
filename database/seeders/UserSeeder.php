@@ -24,8 +24,8 @@ class UserSeeder extends Seeder
             [env('ADMIN_NAME', 'Admin'), env('ADMIN_EMAIL', 'admin@example.com'), env('ADMIN_PASSWORD', 'password'), UserRole::SystemAdmin],
             ['Maalim', 'maalim@emrec.co.tz', $memberPassword, UserRole::TenderOfficer],
             ['Mukhusin', 'backend1developer@gmail.com', $memberPassword, UserRole::ProjectManager],
-            ['Dr. Simba', 'simba@emrec.co.tz', $memberPassword, UserRole::ProjectManager],
-            ['Dr. Sanga', 'sanga@emrec.co.tz', $memberPassword, UserRole::DevMember],
+            ['PhD. Simba', 'simba@emrec.co.tz', $memberPassword, UserRole::ProjectManager],
+            ['PhD. Sanga', 'sanga@emrec.co.tz', $memberPassword, UserRole::DevMember],
         ];
 
         foreach ($accounts as [$name, $email, $password, $role]) {

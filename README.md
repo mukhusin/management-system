@@ -1,187 +1,112 @@
-# Tender & Development-Aid Aggregator
+# EMREC TPMS — Tender & Project Management System
 
-A personal dashboard that pulls tender/procurement notices from multiple
-sources (World Bank, ReliefWeb, TANePS) into one searchable MySQL-backed
-Laravel Blade app.
+A Laravel 13 back-office for EMREC Consulting: track **tenders** through their
+lifecycle, log inbound **service requests**, turn won opportunities into
+**SDLC projects** with a milestone → feature-set → task → sub-task breakdown,
+and keep everything else on a generic **business tracker**. Role-based access,
+an immutable audit trail, optimistic concurrency, threaded comments with
+`@mentions`, and file attachments throughout.
 
-This is a **complete Laravel 13 app**. The framework files
-(`public/index.php`, `bootstrap/`, `config/`, `artisan`, etc.) are
-scaffolded in alongside the app-specific code (models, controllers,
-views, services, migrations, console command).
+> This grew out of a tender aggregator. The World Bank ingestion
+> (`php artisan tenders:fetch`) still works and feeds the Tenders module.
+> Phased roadmap — Phase 2: requirements traceability + stage-gate UI;
+> Phase 3: Laravel Reverb real-time + fault-tolerant ingestion workers +
+> TED/UNGM sources.
 
 ## Setup
 
-1. **Install dependencies:**
-   ```bash
-   composer install
-   ```
-
-2. **Configure your environment** — copy `.env.example` to `.env`,
-   adjust the `DB_*` values for your MySQL server (create the
-   `tender_aggregator` database first), and set `ADMIN_EMAIL` /
-   `ADMIN_PASSWORD` to whatever you want the first account to be. Then:
-   ```bash
-   php artisan key:generate
-   php artisan migrate
-   php artisan db:seed
-   ```
-   `migrate` creates the `users`, `cache`, `jobs`, `sessions`, and
-   `tenders` tables; `db:seed` runs the `UserSeeder` to create the admin
-   account (see "Authentication" below). `SESSION_DRIVER` / `CACHE_STORE`
-   / `QUEUE_CONNECTION` default to `database`; switch them to `file` /
-   `sync` in `.env` if you'd rather not back them with MySQL.
-
-## Authentication (multi-user, login required)
-
-Every page except `/login` requires a logged-in session — the `auth`
-middleware group in `routes/web.php` handles this, so both API-fetched
-tenders and ones added manually by any user are only visible to signed-in
-users.
-
-This uses Laravel's **built-in** `Auth` facade directly (no
-Breeze/Jetstream/Fortify package needed) — `AuthController.php` plus
-`resources/views/auth/login.blade.php` are the whole login flow.
-
-**There is no public registration.** Every account is created by the
-seeder:
-
-- The admin account comes from `ADMIN_NAME` / `ADMIN_EMAIL` /
-  `ADMIN_PASSWORD` in `.env`. Set those, then:
-  ```bash
-  php artisan db:seed --class=UserSeeder
-  ```
-- To add the rest of your team, fill in the `$team` array in
-  `database/seeders/UserSeeder.php` and re-run the command above.
-  Accounts are matched by email, so re-running never duplicates or
-  overwrites an existing user.
-- One-offs can still be created by hand:
-  ```bash
-  php artisan tinker
-  >>> \App\Models\User::create(['name' => 'Mukhusin', 'email' => 'you@example.com', 'password' => 'a-strong-password']);
-  ```
-  (`password` is hashed automatically by the `User` model's cast.)
-
-## Who added what
-
-The `tenders` table has a nullable `user_id`:
-- **API-fetched rows** (World Bank, ReliefWeb, TANePS) have `user_id = null`
-  — they belong to the system, not a person.
-- **Manually-added rows** (via "+ Add opportunity", e.g. from LinkedIn)
-  are stamped with whoever added them, and the dashboard shows "Added by
-  {name}" so your team knows the source.
-
-4. **Pull in tenders**:
-   ```bash
-   php artisan tenders:fetch
-   # or just one source while you're testing:
-   php artisan tenders:fetch --source=world_bank
-   ```
-
-5. **Run it**:
-   ```bash
-   php artisan serve
-   ```
-   Visit `http://localhost:8000` — you'll see the dashboard with search,
-   source filter, country filter, and open/closed toggle.
-
-## Sources
-
-All source settings live in `config/tenders.php` (env-overridable). A
-source that isn't enabled or is missing its credentials/URL is **skipped**
-by `tenders:fetch`, not treated as an error.
-
-- **World Bank** (`app/Services/WorldBankTenderService.php`) — real open
-  API, works out of the box. `WORLD_BANK_QUERY` is a full-text `qterm`
-  filter (defaults to `Tanzania`; blank = every country). Covered by
-  `tests/Feature/WorldBankTenderServiceTest.php`.
-- **ReliefWeb** (`app/Services/ReliefWebTenderService.php`) — real API
-  (v2; v1 was decommissioned). Since **2025-11-01 it rejects unknown
-  `appname`s with a 403**, so you must
-  [request a pre-approved appname](https://apidoc.reliefweb.int/parameters#appname)
-  and set `RELIEFWEB_APPNAME`. Until then the source is skipped. Filtered
-  to Tanzania via `RELIEFWEB_COUNTRY`.
-- **TANePS** (`app/Services/TanepsTenderService.php`) — **no public API**,
-  and the dashboard at `taneps.go.tz/#/website/tender-notice` is a
-  JavaScript SPA that never reaches the server (that's why the old
-  version timed out). The classic PPS platform underneath still renders
-  plain HTML under `/epps/...`; find that listing URL in a browser, set
-  `TANEPS_LISTING_URL`, and adjust the table selectors in the service.
-  Skipped until `TANEPS_LISTING_URL` is set.
-
-## Manual "quick add" (for LinkedIn, WhatsApp, email, etc.)
-
-LinkedIn (and most closed platforms — WhatsApp groups, private newsletters)
-can't be auto-fetched: no public API, and scraping LinkedIn specifically
-violates their Terms of Service. Instead, there's a **"+ Add opportunity"**
-button in the header that opens a small form — paste the title, the
-LinkedIn post URL, deadline, etc., and it's stored with `source = manual`
-so it shows up in search/filters right alongside the auto-fetched ones.
-
-Good complements for catching these without scraping:
-- A **Google Alert** for terms like `"funding opportunity" Africa
-  site:linkedin.com`, or for specific org names you follow.
-- Following the specific pages/people (e.g. Global Grants and
-  Opportunities for Africa) directly on LinkedIn so you get notified,
-  then using "+ Add opportunity" to save the ones worth tracking.
-
-## Adding a new source
-
-1. Create `app/Services/YourSourceTenderService.php` implementing
-   `TenderSourceInterface` (`fetch()`, `sourceKey()`, `isEnabled()`).
-2. Add its settings block to `config/tenders.php`.
-3. Register it in the `$sources` array in
-   `app/Console/Commands/FetchTenders.php`.
-4. Run `php artisan tenders:fetch --source=your_source_key` to test it
-   in isolation.
-
-Good next candidates, in rough order of ease:
-- **TED (EU Tenders Electronic Daily)** — has a real API
-  (`https://api.ted.europa.eu`), similar shape to the World Bank service.
-- **PPRA Tanzania** — publishes tender bulletins; likely needs scraping
-  like TANePS.
-- **UNGM** — partial public data; check their current terms before
-  scraping.
-
-## Scheduling automatic refresh
-
-`routes/console.php` schedules `tenders:fetch` to run **every 6 hours**
-(configurable via `TENDERS_FETCH_CRON` in `.env`), in the timezone set by
-`APP_TIMEZONE`. The run is non-overlapping, backgrounded, and its output
-is appended to `storage/logs/tenders-fetch.log`; a failure is also noted
-in `storage/logs/laravel.log`.
-
-Check what's registered and when it next runs:
 ```bash
-php artisan schedule:list
+composer install
+cp .env.example .env          # set DB_*, ADMIN_*, TEAM_MEMBER_PASSWORD
+php artisan key:generate
+php artisan migrate --seed
+php artisan tenders:fetch     # optional: pull World Bank procurement notices
 ```
 
-Laravel's scheduler still needs the OS to invoke it once a minute. Pick one:
+`migrate --seed` runs `ServiceLineSeeder` (EMREC's 10 service lines),
+`UserSeeder` (the admin + 4 team accounts), and — outside production —
+`TrackerSeeder` (imports `database/seeders/data/emrec-tracker.csv`).
 
-- **Server (cron)** — add a single crontab entry (`crontab -e`):
-  ```
-  * * * * * cd /home/mukhusin-siraji/Dev/outside/tender-aggregator && php artisan schedule:run >> /dev/null 2>&1
-  ```
-- **Local dev** — run a long-lived worker in a spare terminal (no cron needed):
-  ```bash
-  php artisan schedule:work
-  ```
-- **Run it right now**, ignoring the schedule:
-  ```bash
-  php artisan tenders:fetch
-  ```
+`SESSION_DRIVER` / `CACHE_STORE` / `QUEUE_CONNECTION` default to `database`;
+switch to `file` / `sync` in `.env` to avoid backing them with MySQL.
 
-## Alerts (not built yet, but the model supports it easily)
+## Roles & permissions
 
-Since every tender row is deduped by `(source, external_id)`, a simple
-next step is: after `tenders:fetch` upserts, check for rows created in
-the last run matching a saved keyword/country, and email or Telegram
-yourself. Happy to build that next once the core fetchers are working
-against real data.
+Four roles, seeded on the accounts above:
 
+| Role | Can |
+| --- | --- |
+| `system_admin` | everything (incl. user & service-line management, audit log) |
+| `tender_officer` | ingest / register / edit / transition tenders, log & progress service requests, tracker |
+| `project_manager` | initiate & run projects, manage the work breakdown, tracker, comments, audit |
+| `dev_member` | comment, update tasks/sub-tasks assigned to them |
 
+Every ability in `config/permissions.php` is a Laravel Gate. An admin can
+**grant or revoke individual permissions per user** on the Team → Edit screen
+(stored in `permission_overrides`); `system_admin` always passes via
+`Gate::before`.
 
-git init
-git commit -m "first commit"
-git branch -M main
-git remote add origin git@github.com:mukhusin/management-system.git
-git push -u origin main
+There is **no public registration** — the admin creates accounts (a random
+temporary password is shown once).
+
+## The modules
+
+- **Tenders** (`/tenders`) — state machine `Draft → Under Review → Submitted →
+  Won → Lost/Cancelled`; only legal transitions are offered and each is
+  written to the audit log. Editing a tender's value/deadline needs
+  `tenders.edit_baseline` and is audited. A **Won** tender can be promoted to
+  a project in one click, inheriting client / scope / budget / deadline.
+- **Service Requests** (`/service-requests`) — inbound enquiries with their own
+  machine `New → Qualified → Quoted → Won → Engaged`, `Declined`/`Lost` exits.
+  A **Won** request promotes to a project and moves to `Engaged`.
+- **Projects** (`/projects`) — `type` is `sdlc` (uses the 5 stage-gated
+  phases) or `engagement` (milestone-only). Work breaks down
+  **Milestone → Feature Set → Task → Sub-task**; ticking a sub-task rolls
+  progress up to the project (cached `progress` columns, kept current by
+  `ProgressRollupObserver`). `My Work` (`/my-work`) lists your tasks.
+- **Tracker** (`/tracker`) — the EMREC Master Business Tracker: category,
+  owner, status, priority, progress, next action, due date, remarks.
+  Import a spreadsheet at `/import` or `php artisan tracker:import <file.csv>`
+  (idempotent — rows matched by `EMREC-###`).
+- **Reports** (`/reports`) — tender & service-request funnels, win rates,
+  projects by status, workload per person, pipeline & delivery by service line,
+  overdue tasks.
+- **Audit** (`/audit`, `audit.view` only) — append-only log of state changes,
+  baseline edits, project initiations, comments and attachments. Rows cannot
+  be updated or deleted.
+
+## Concurrency
+
+Concurrently-edited records carry a `lock_version`. Edit forms submit it in a
+hidden field; if someone else saved first, the update is rejected with
+"changed by someone else — reload and try again" instead of silently
+overwriting (`App\Models\Concerns\HasOptimisticLock`).
+
+## Comments, mentions, attachments
+
+Tenders, service requests, projects, tasks and tracker items all support:
+
+- **Markdown comments** (`Str::markdown`, unsafe HTML stripped). Mention a
+  colleague with `@their.name` or `@their@email` — they get a database
+  notification (bell in the header, `/notifications`).
+- **File attachments** on the `local` disk (`config/attachments.php` for the
+  size/extension rules).
+
+## Tender ingestion (World Bank)
+
+Unchanged from the aggregator. `config/tenders.php` holds the source settings;
+`php artisan tenders:fetch` upserts, `routes/console.php` schedules it. World
+Bank works out of the box; ReliefWeb needs a pre-approved `appname`; TANePS
+needs a listing URL (both skip cleanly until configured).
+
+## Tests
+
+```bash
+php artisan test
+```
+
+Runs against MySQL `tender_aggregator_test` (`phpunit.xml`) — switch those two
+`DB_*` lines back to `sqlite` / `:memory:` if your PHP has `pdo_sqlite`.
+Coverage: RBAC + overrides, both state machines, optimistic locking, audit
+immutability, project initiation & data inheritance, progress roll-up,
+mentions/notifications, the CSV importer, and page smoke tests per role.

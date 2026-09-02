@@ -28,7 +28,7 @@ class TenderPaginationTest extends TestCase
         $this->makeTenders(45);
 
         $this->actingAs(User::factory()->create())
-            ->get('/?open_only=0')
+            ->get('/tenders?open_only=0')
             ->assertOk()
             ->assertSee('Showing 1&ndash;20', false)
             ->assertSee('of 45', false)
@@ -41,7 +41,7 @@ class TenderPaginationTest extends TestCase
         $user = User::factory()->create();
 
         $idsOnPage = function (int $page) use ($user) {
-            $html = $this->actingAs($user)->get("/?open_only=0&page={$page}")->getContent();
+            $html = $this->actingAs($user)->get("/tenders?open_only=0&page={$page}")->getContent();
             preg_match_all('#/tenders/(\d+)"#', $html, $m);
 
             return array_values(array_unique($m[1]));
@@ -65,7 +65,7 @@ class TenderPaginationTest extends TestCase
         $this->makeTenders(30);
 
         $html = $this->actingAs(User::factory()->create())
-            ->get('/?open_only=0&q=Notice&page=2')
+            ->get('/tenders?open_only=0&q=Notice&page=2')
             ->assertOk()
             ->getContent();
 

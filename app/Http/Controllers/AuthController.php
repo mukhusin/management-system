@@ -28,7 +28,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('tenders.index'));
+        return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request)

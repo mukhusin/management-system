@@ -18,9 +18,7 @@ return [
         // Spreadsheet "Responsible Person" text => user email.
         'people' => [
             'Maalim' => 'maalim@emrec.co.tz',
-            'Mukhsini' => 'backend1developer@gmail.com',
             'Mukhusin' => 'backend1developer@gmail.com',
-            'Muksini' => 'backend1developer@gmail.com',
             'Dr. Simba' => 'simba@emrec.co.tz',
             'Dr. Sanga' => 'sanga@emrec.co.tz',
         ],

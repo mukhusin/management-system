@@ -41,9 +41,9 @@ class Milestone extends Model
         return $this->hasMany(FeatureSet::class)->orderBy('position')->orderBy('id');
     }
 
-    public function progressChildren(): iterable
+    public function progressChildRelation(): ?string
     {
-        return $this->featureSets;
+        return 'featureSets';
     }
 
     public function progressParent(): ?Model

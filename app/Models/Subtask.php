@@ -44,14 +44,9 @@ class Subtask extends Model
 
     // --- Progress roll-up (leaf) ------------------------------------
 
-    public function progressChildren(): iterable
-    {
-        return [];
-    }
-
     public function progressParent(): ?Model
     {
-        return $this->task;
+        return $this->task()->first();
     }
 
     public function computeLeafProgress(): ?int

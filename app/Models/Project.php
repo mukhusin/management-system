@@ -96,9 +96,9 @@ class Project extends Model
 
     // --- Progress roll-up ----------------------------------------------
 
-    public function progressChildren(): iterable
+    public function progressChildRelation(): ?string
     {
-        return $this->milestones;
+        return 'milestones';
     }
 
     public function progressParent(): ?Model

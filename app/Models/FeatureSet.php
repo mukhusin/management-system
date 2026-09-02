@@ -36,9 +36,9 @@ class FeatureSet extends Model
         return $this->hasMany(Task::class)->orderBy('position')->orderBy('id');
     }
 
-    public function progressChildren(): iterable
+    public function progressChildRelation(): ?string
     {
-        return $this->tasks;
+        return 'tasks';
     }
 
     public function progressParent(): ?Model

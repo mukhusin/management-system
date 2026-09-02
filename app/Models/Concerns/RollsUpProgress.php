@@ -5,10 +5,10 @@ namespace App\Models\Concerns;
 /**
  * Cached progress roll-up for the Project → Milestone → Feature Set → Task →
  * Sub-task tree. Each model implements:
- *   - progressChildren(): iterable of child models exposing `progress`
+ *   - progressChildRelation(): ?string  — name of the hasMany relation whose
+ *                                         rows expose `progress` (null ⇒ leaf)
  *   - progressParent(): the parent model (or null at the root)
- *   - computeLeafProgress(): ?int  — a value to use when there are no children
- *                                    (null ⇒ always average the children)
+ *   - computeLeafProgress(): ?int — value to use when there are no children
  *
  * Call recomputeProgress() after a child changes; it writes the new cached
  * value (without firing model events) and bubbles up to the parent.
@@ -17,7 +17,10 @@ trait RollsUpProgress
 {
     public function recomputeProgress(bool $bubble = true): void
     {
-        $children = collect($this->progressChildren());
+        $relation = $this->progressChildRelation();
+
+        // Always read children fresh — the relation may be cached and stale.
+        $children = $relation ? $this->{$relation}()->get() : collect();
 
         if ($children->isEmpty()) {
             $value = $this->computeLeafProgress() ?? 0;
@@ -33,6 +36,11 @@ trait RollsUpProgress
         if ($bubble) {
             $this->progressParent()?->recomputeProgress();
         }
+    }
+
+    public function progressChildRelation(): ?string
+    {
+        return null;
     }
 
     public function computeLeafProgress(): ?int
