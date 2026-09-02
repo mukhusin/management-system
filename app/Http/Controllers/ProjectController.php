@@ -6,11 +6,13 @@ use App\Enums\Priority;
 use App\Enums\ProjectPhase;
 use App\Enums\ProjectStatus;
 use App\Enums\ProjectType;
+use App\Enums\TaskStatus;
 use App\Enums\WorkStatus;
 use App\Models\Project;
 use App\Models\ServiceLine;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
@@ -40,6 +42,9 @@ class ProjectController extends Controller
             'owner', 'serviceLine', 'tender', 'serviceRequest',
             'milestones.featureSets.tasks.assignee',
             'milestones.featureSets.tasks.subtasks',
+            'milestones.featureSets.tasks.scopeItems',
+            'scopeItems.tasks',
+            'phaseSignoffs.signer',
             'comments.user', 'comments.mentions', 'attachments.user', 'auditLogs.user',
         ]);
 
@@ -47,8 +52,9 @@ class ProjectController extends Controller
             'project' => $project,
             'phases' => ProjectPhase::cases(),
             'workStatuses' => WorkStatus::options(),
-            'taskStatuses' => \App\Enums\TaskStatus::options(),
+            'taskStatuses' => TaskStatus::options(),
             'members' => User::orderBy('name')->get(),
+            'coverage' => $project->scopeCoverage(),
         ]);
     }
 
@@ -106,20 +112,37 @@ class ProjectController extends Controller
             return back()->with('error', 'The project is already in the final phase.');
         }
 
-        $blocking = $project->milestones()
-            ->where('phase', $project->current_phase->value)
-            ->where('status', '!=', WorkStatus::Done->value)
-            ->exists();
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:2000'],
+            'force' => ['sometimes', 'boolean'],
+        ]);
 
-        if ($blocking && ! $request->user()->isAdmin()) {
-            return back()->with('error', 'Complete all '.$project->current_phase->label().' milestones first (or ask an administrator to override).');
+        $incomplete = $project->incompleteMilestonesForPhase($project->current_phase);
+        $wantsForce = $request->boolean('force');
+
+        if ($incomplete->isNotEmpty()) {
+            if (Project::phaseGatesEnforced() || ! $wantsForce || ! $request->user()->isAdmin()) {
+                return back()->with('error',
+                    $incomplete->count().' '.$project->current_phase->label().' milestone(s) are not Done.'
+                    .(Project::phaseGatesEnforced() ? '' : ' A system administrator can override with the force option.'));
+            }
         }
 
         $from = $project->current_phase;
-        $project->forceFill(['current_phase' => $next->value])->save();
-        $project->audit('phase_advanced', ['phase' => $from->value], ['phase' => $next->value]);
 
-        return back()->with('status', 'Advanced to '.$next->label().'.');
+        DB::transaction(function () use ($project, $from, $next, $request, $data, $incomplete, $wantsForce) {
+            $project->forceFill(['current_phase' => $next->value])->save();
+            $project->phaseSignoffs()->create([
+                'phase' => $from->value,
+                'signed_by' => $request->user()->id,
+                'note' => $data['note'] ?? null,
+                'forced' => $incomplete->isNotEmpty() && $wantsForce,
+                'signed_at' => now(),
+            ]);
+            $project->audit('phase_advanced', ['phase' => $from->value], ['phase' => $next->value]);
+        });
+
+        return back()->with('status', 'Signed off '.$from->label().' — now in '.$next->label().'.');
     }
 
     private function form(Project $project)

@@ -9,9 +9,10 @@ an immutable audit trail, optimistic concurrency, threaded comments with
 
 > This grew out of a tender aggregator. The World Bank ingestion
 > (`php artisan tenders:fetch`) still works and feeds the Tenders module.
-> Phased roadmap — Phase 2: requirements traceability + stage-gate UI;
-> Phase 3: Laravel Reverb real-time + fault-tolerant ingestion workers +
-> TED/UNGM sources.
+> **Phase 1** (core system) and **Phase 2** (requirements traceability,
+> stage-gate enforcement, markdown editor) are done. **Phase 3** is next:
+> Laravel Reverb real-time + fault-tolerant ingestion workers + TED/UNGM
+> sources.
 
 ## Setup
 
@@ -64,6 +65,18 @@ temporary password is shown once).
   **Milestone → Feature Set → Task → Sub-task**; ticking a sub-task rolls
   progress up to the project (cached `progress` columns, kept current by
   `ProgressRollupObserver`). `My Work` (`/my-work`) lists your tasks.
+  - **Requirements traceability** — a project has `scope_items` (auto-created
+    by splitting the tender's scope statement on promotion, plus manual ones),
+    each linked many-to-many to the tasks that satisfy it. The project shows a
+    coverage bar; uncovered requirements are flagged.
+  - **Stage gates** — advancing a phase records a `phase_signoffs` entry (who,
+    when, note) and is audited. Set `ENFORCE_PHASE_GATES=true` (see
+    `config/projects.php`) to hard-block advancing while current-phase
+    milestones are open and block creating work under future-phase milestones;
+    otherwise a `system_admin` can force past open milestones.
+- **Editor** — comment boxes use a dependency-free markdown editor: toolbar,
+  `@`-triggered mention autocomplete (`/mentions`), and a server-rendered
+  preview (`/comments/preview`, same pipeline as a saved comment).
 - **Tracker** (`/tracker`) — the EMREC Master Business Tracker: category,
   owner, status, priority, progress, next action, due date, remarks.
   Import a spreadsheet at `/import` or `php artisan tracker:import <file.csv>`

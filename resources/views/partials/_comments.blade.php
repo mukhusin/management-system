@@ -5,9 +5,10 @@
     @can('tenders.comment')
         <form method="POST" action="{{ route('comments.store', [$subjectType, $subject->id]) }}">
             @csrf
-            <textarea name="body" rows="3" style="width:100%;" placeholder="Write a comment. Markdown supported. Mention colleagues with @name@emrec.co.tz" required></textarea>
+            <textarea name="body" data-editor rows="3" placeholder="Write a comment. Markdown supported. Type @ to mention a colleague." required></textarea>
             <button type="submit" class="small" style="margin-top:0.5rem;">Post comment</button>
         </form>
+        @include('partials._editor')
     @endcan
 
     <ul class="thread">

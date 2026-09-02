@@ -24,6 +24,11 @@ class TaskController extends Controller
 
     public function store(Request $request, FeatureSet $featureSet)
     {
+        $milestone = $featureSet->milestone;
+        if (! $milestone->project->workAllowedInPhase($milestone->phase)) {
+            return back()->with('error', 'This milestone belongs to a later phase — advance the project first (phase gates are enforced).');
+        }
+
         $data = $this->rules($request);
         $data['position'] = (int) $featureSet->tasks()->max('position') + 1;
         $featureSet->tasks()->create($data);

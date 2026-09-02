@@ -11,6 +11,10 @@ class FeatureSetController extends Controller
 {
     public function store(Request $request, Milestone $milestone)
     {
+        if (! $milestone->project->workAllowedInPhase($milestone->phase)) {
+            return back()->with('error', 'This milestone belongs to a later phase — advance the project first (phase gates are enforced).');
+        }
+
         $data = $this->rules($request);
         $data['position'] = (int) $milestone->featureSets()->max('position') + 1;
         $milestone->featureSets()->create($data);

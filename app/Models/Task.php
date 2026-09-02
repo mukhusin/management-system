@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
@@ -59,6 +60,11 @@ class Task extends Model
     public function subtasks(): HasMany
     {
         return $this->hasMany(Subtask::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function scopeItems(): BelongsToMany
+    {
+        return $this->belongsToMany(ScopeItem::class, 'scope_item_task');
     }
 
     public function project(): ?Project

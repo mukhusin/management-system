@@ -52,6 +52,7 @@ class ProjectInitiator
             ]);
 
             $this->applyPhaseDefault($project);
+            $this->seedScopeItems($project, $tender->scope_statement);
 
             $tender->audit('project_initiated', null, ['project_id' => $project->id]);
             $project->audit('project_initiated', ['origin' => 'tender'], ['tender_id' => $tender->id]);
@@ -86,6 +87,7 @@ class ProjectInitiator
             ]);
 
             $this->applyPhaseDefault($project);
+            $this->seedScopeItems($project, $request->details ?: $request->summary);
 
             $request->audit('project_initiated', null, ['project_id' => $project->id]);
             $project->audit('project_initiated', ['origin' => 'service_request'], ['service_request_id' => $request->id]);
@@ -108,6 +110,32 @@ class ProjectInitiator
     {
         if ($project->type === ProjectType::Sdlc) {
             $project->forceFill(['current_phase' => ProjectPhase::Requirements->value])->save();
+        }
+    }
+
+    /**
+     * Split a free-text scope statement into individual requirement line items
+     * (SRS SDLC-3). One per non-blank line; bullet / number prefixes stripped.
+     */
+    private function seedScopeItems(Project $project, ?string $statement): void
+    {
+        if (! config('projects.seed_scope_from_tender', true) || blank($statement)) {
+            return;
+        }
+
+        $lines = collect(preg_split('/\r\n|\r|\n|(?<=[.;])\s+(?=[A-Z0-9])/', $statement))
+            ->map(fn ($l) => trim(preg_replace('/^\s*(?:[-*•]|\d+[.)])\s*/', '', $l)))
+            ->filter(fn ($l) => mb_strlen($l) >= 3)
+            ->unique()
+            ->values();
+
+        foreach ($lines as $i => $description) {
+            $project->scopeItems()->create([
+                'code' => 'S'.($i + 1),
+                'description' => $description,
+                'source' => 'tender',
+                'position' => $i + 1,
+            ]);
         }
     }
 }

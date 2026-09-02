@@ -15,7 +15,14 @@ Read `README.md` first. Key structure:
   Check with `->middleware('can:x')`, `$user->can('x')`, `@can`.
 - **State machines** — `TenderStateMachine`, `ServiceRequestStateMachine`
   (`apply($model, $toState, $actor, $note)`); transitions defined on the enums.
-- **Promotion** — `ProjectInitiator::fromTender()` / `fromServiceRequest()`.
+- **Promotion** — `ProjectInitiator::fromTender()` / `fromServiceRequest()`;
+  also seeds `scope_items` by splitting the tender/request scope text.
+- **Traceability** — `ScopeItem` (project) <-> `Task` via `scope_item_task`;
+  `Project::scopeCoverage()`. **Phase gates** — `config/projects.php`
+  (`ENFORCE_PHASE_GATES`), `PhaseSignoff` records, `Project::workAllowedInPhase()`.
+- **Editor** — `partials/_editor.blade.php` enhances `textarea[data-editor]`
+  (comments); endpoints `/mentions`, `POST /comments/preview`. Layout provides
+  `@stack('foot')` + csrf meta.
 - **Audit** (`audit_logs`) is append-only — the model throws on update/delete.
 - Tests run against MySQL `tender_aggregator_test` (no `pdo_sqlite` on this box).
 - Ingestion (`app/Services/*TenderService`, `tenders:fetch`) is unchanged from

@@ -84,6 +84,16 @@ class Project extends Model
         return $this->hasMany(Milestone::class)->orderBy('position')->orderBy('id');
     }
 
+    public function scopeItems(): HasMany
+    {
+        return $this->hasMany(ScopeItem::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function phaseSignoffs(): HasMany
+    {
+        return $this->hasMany(PhaseSignoff::class)->latest('signed_at');
+    }
+
     /** All tasks under this project, flattened. */
     public function allTasks(): Collection
     {
@@ -92,6 +102,31 @@ class Project extends Model
             ->get()
             ->flatMap->featureSets
             ->flatMap->tasks;
+    }
+
+    // --- Requirements traceability ------------------------------------
+
+    /** @return array{total:int, covered:int, percent:int} */
+    public function scopeCoverage(): array
+    {
+        $items = $this->relationLoaded('scopeItems') ? $this->scopeItems : $this->scopeItems()->withCount('tasks')->get();
+        $total = $items->count();
+        $covered = $items->filter->isCovered()->count();
+
+        return [
+            'total' => $total,
+            'covered' => $covered,
+            'percent' => $total ? (int) round($covered / $total * 100) : 100,
+        ];
+    }
+
+    public function nextScopeCode(): string
+    {
+        $max = (int) $this->scopeItems()
+            ->selectRaw('MAX(CAST(SUBSTRING(code, 2) AS UNSIGNED)) as n')
+            ->value('n');
+
+        return 'S'.($max + 1);
     }
 
     // --- Progress roll-up ----------------------------------------------
@@ -111,6 +146,41 @@ class Project extends Model
     public function usesPhases(): bool
     {
         return $this->type === ProjectType::Sdlc;
+    }
+
+    public static function phaseGatesEnforced(): bool
+    {
+        return (bool) config('projects.enforce_phase_gates', false);
+    }
+
+    /** Milestones tagged to $phase that are not yet Done. */
+    public function incompleteMilestonesForPhase(ProjectPhase $phase)
+    {
+        $milestones = $this->relationLoaded('milestones') ? $this->milestones : $this->milestones()->get();
+
+        return $milestones
+            ->where('phase', $phase)
+            ->reject(fn (Milestone $m) => $m->status === \App\Enums\WorkStatus::Done)
+            ->values();
+    }
+
+    public function currentPhaseComplete(): bool
+    {
+        return ! $this->current_phase
+            || $this->incompleteMilestonesForPhase($this->current_phase)->isEmpty();
+    }
+
+    /**
+     * Whether new work (feature sets / tasks) may be added under a milestone
+     * that belongs to $phase. Only restricted when gates are enforced.
+     */
+    public function workAllowedInPhase(?ProjectPhase $phase): bool
+    {
+        if (! $this->usesPhases() || ! self::phaseGatesEnforced() || ! $phase || ! $this->current_phase) {
+            return true;
+        }
+
+        return $phase->order() <= $this->current_phase->order();
     }
 
     public function scopeStatus(Builder $query, ProjectStatus|string|null $status): Builder

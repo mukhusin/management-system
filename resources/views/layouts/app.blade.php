@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'TPMS') &mdash; EMREC</title>
     <style>
         :root {
@@ -77,7 +78,10 @@
         .thread li { border-top:1px solid var(--border); padding:0.7rem 0; }
         .thread .by { font-weight:600; font-size:0.85rem; }
         .thread .at { color:var(--muted); font-size:0.75rem; }
-        .thread .mention { background:#eef2ff; color:var(--accent); border-radius:4px; padding:0 3px; }
+        .thread .mention, .mdw-preview .mention { background:#eef2ff; color:var(--accent); border-radius:4px; padding:0 3px; }
+        .cover { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+        .scope-uncovered { color:var(--c-red); }
+        .chip { display:inline-block; background:#f1f2f4; color:var(--muted); border-radius:4px; padding:0 5px; font-size:0.7rem; }
 
         .pagination { margin-top:1rem; }
         .pager { display:flex; flex-wrap:wrap; gap:0.35rem; }
@@ -148,5 +152,6 @@
     @endif
     @yield('content')
 </main>
+@stack('foot')
 </body>
 </html>

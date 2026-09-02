@@ -7,9 +7,11 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeatureSetController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\MentionController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ScopeItemController;
 use App\Http\Controllers\ServiceLineController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\SubtaskController;
@@ -67,10 +69,19 @@ Route::middleware('auth')->group(function () {
     Route::patch('subtasks/{subtask}/toggle', [SubtaskController::class, 'toggle'])->name('subtasks.toggle');
     Route::get('my-work', [TaskController::class, 'mine'])->name('tasks.mine');
 
+    // Requirements traceability
+    Route::middleware('can:projects.manage_work')->group(function () {
+        Route::post('projects/{project}/scope-items', [ScopeItemController::class, 'store'])->name('scope-items.store');
+        Route::put('scope-items/{scopeItem}', [ScopeItemController::class, 'update'])->name('scope-items.update');
+        Route::delete('scope-items/{scopeItem}', [ScopeItemController::class, 'destroy'])->name('scope-items.destroy');
+    });
+
     // Generic tracker
     Route::resource('tracker', TrackerItemController::class)->parameters(['tracker' => 'trackerItem']);
 
     // Comments + attachments (polymorphic)
+    Route::get('mentions', [MentionController::class, 'index'])->name('mentions.index');
+    Route::post('comments/preview', [CommentController::class, 'preview'])->name('comments.preview');
     Route::post('{type}/{id}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::post('{type}/{id}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
