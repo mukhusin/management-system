@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sign in') &mdash; EMREC TPMS</title>
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
     <style>
         body { display: grid; grid-template-columns: 1fr 460px; min-height: 100vh; }
         .auth-hero {
