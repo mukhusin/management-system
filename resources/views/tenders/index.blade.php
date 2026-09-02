@@ -44,7 +44,7 @@
                 <td><a href="{{ route('tenders.show', $tender) }}">{{ $tender->title }}</a>
                     <div class="muted">{{ $tender->client ?? $tender->buyer }} @if($tender->country)· {{ $tender->country }}@endif</div></td>
                 <td>@include('partials._badge', ['enum' => $tender->state])</td>
-                <td>{{ $tender->owner?->name ?? '—' }}</td>
+                <td>{{ $tender->owners->pluck("name")->join(", ") ?: "—" }}</td>
                 <td>{{ $tender->serviceLine?->name ?? '—' }}</td>
                 <td>@include('partials._due', ['model' => $tender, 'label' => 'Deadline'])</td>
                 <td>@if($tender->value){{ number_format($tender->value) }} {{ $tender->currency }}@else—@endif</td>

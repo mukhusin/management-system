@@ -21,9 +21,9 @@ class ProjectController extends Controller
         $projects = Project::query()
             ->search($request->input('q'))
             ->status($request->input('status'))
-            ->when($request->input('owner'), fn ($qq, $o) => $qq->where('owner_id', $o))
+            ->ownedBy($request->input('owner'))
             ->when($request->boolean('overdue'), fn ($qq) => $qq->whereDate('target_deadline', '<', now())->whereNotIn('status', [ProjectStatus::Completed->value, ProjectStatus::Cancelled->value]))
-            ->with(['owner', 'serviceLine', 'tender', 'serviceRequest'])
+            ->with(['owners', 'serviceLine', 'tender', 'serviceRequest'])
             ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
@@ -39,8 +39,8 @@ class ProjectController extends Controller
     public function show(Project $project)
     {
         $project->load([
-            'owner', 'serviceLine', 'tender', 'serviceRequest',
-            'milestones.featureSets.tasks.assignee',
+            'owners', 'serviceLine', 'tender', 'serviceRequest',
+            'milestones.featureSets.tasks.assignees',
             'milestones.featureSets.tasks.subtasks',
             'milestones.featureSets.tasks.scopeItems',
             'scopeItems.tasks',
@@ -69,6 +69,7 @@ class ProjectController extends Controller
         $data['current_phase'] = ($data['type'] ?? null) === ProjectType::Sdlc->value ? ProjectPhase::Requirements->value : null;
 
         $project = Project::create($data);
+        $project->syncOwners($request->input('owner_ids') ?: [$request->user()->id]);
 
         return redirect()->route('projects.show', $project)->with('status', 'Project created.');
     }
@@ -88,6 +89,9 @@ class ProjectController extends Controller
         }
 
         $project->updateWithLock($data, (int) $request->integer('lock_version'));
+        if ($request->has('owner_ids')) {
+            $project->syncOwners($request->input('owner_ids', []));
+        }
         $project->refresh()->auditBaselineChanges($before);
 
         return redirect()->route('projects.show', $project)->with('status', 'Project updated.');
@@ -95,7 +99,7 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
-        abort_unless($project->owner_id === request()->user()->id || request()->user()->isAdmin(), 403);
+        abort_unless($project->isOwnedBy(request()->user()) || request()->user()->isAdmin(), 403);
         $project->delete();
 
         return redirect()->route('projects.index')->with('status', 'Project deleted.');
@@ -174,7 +178,8 @@ class ProjectController extends Controller
             'status' => ['required', 'in:'.implode(',', ProjectStatus::values())],
             'priority' => ['required', 'in:'.implode(',', Priority::values())],
             'service_line_id' => ['nullable', 'exists:service_lines,id'],
-            'owner_id' => ['nullable', 'exists:users,id'],
+            'owner_ids' => ['array'],
+            'owner_ids.*' => ['integer', 'exists:users,id'],
             'client' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'scope_statement' => ['nullable', 'string'],

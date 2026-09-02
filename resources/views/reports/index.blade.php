@@ -61,7 +61,7 @@
         <tbody>
         @forelse ($overdue as $t)
             <tr><td>{{ $t->title }}</td><td>{{ $t->featureSet?->milestone?->project?->name }}</td>
-                <td>{{ $t->assignee?->name ?? '—' }}</td><td class="due-soon">{{ optional($t->due_date)->format('d M Y') }}</td></tr>
+                <td>{{ $t->assignees->pluck('name')->join(', ') ?: '—' }}</td><td class="due-soon">{{ optional($t->due_date)->format('d M Y') }}</td></tr>
         @empty <tr><td colspan="4" class="muted">Nothing overdue.</td></tr>
         @endforelse
         </tbody>

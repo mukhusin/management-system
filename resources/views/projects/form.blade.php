@@ -22,9 +22,7 @@
         <div><label>Service line</label><select name="service_line_id"><option value="">—</option>
             @foreach ($serviceLines as $l)<option value="{{ $l->id }}" @selected((string)old('service_line_id',$project->service_line_id)===(string)$l->id)>{{ $l->name }}</option>@endforeach
         </select></div>
-        <div><label>Owner</label><select name="owner_id"><option value="">—</option>
-            @foreach ($owners as $o)<option value="{{ $o->id }}" @selected((string)old('owner_id',$project->owner_id)===(string)$o->id)>{{ $o->name }}</option>@endforeach
-        </select></div>
+        <div class="full">@include('partials._owner_picker', ['users' => $owners, 'name' => 'owner_ids', 'label' => 'Owners', 'selected' => old('owner_ids', $project->exists ? $project->owners->pluck('id')->all() : [])])</div>
         <div><label>Client</label><input type="text" name="client" value="{{ old('client', $project->client) }}"></div>
         <div><label>Budget</label><input type="number" step="0.01" name="budget" value="{{ old('budget', $project->budget) }}"></div>
         <div><label>Currency</label><input type="text" name="currency" value="{{ old('currency', $project->currency) }}"></div>

@@ -21,13 +21,14 @@ class ProjectInitiationTest extends TestCase
     public function test_won_tender_promotes_and_inherits_data(): void
     {
         $pm = User::factory()->role(UserRole::ProjectManager)->create();
+        $coOwner = User::factory()->create();
         $tender = Tender::factory()->won()->create([
             'client' => 'Ministry of Health',
             'estimated_value' => 120000,
             'currency' => 'USD',
             'scope_statement' => 'Build the thing',
-            'owner_id' => $pm->id,
         ]);
+        $tender->owners()->sync([$pm->id, $coOwner->id]);
 
         $project = app(ProjectInitiator::class)->fromTender($tender, $pm);
 
@@ -35,6 +36,7 @@ class ProjectInitiationTest extends TestCase
         $this->assertSame('Ministry of Health', $project->client);
         $this->assertSame('120000.00', $project->budget);
         $this->assertSame('Build the thing', $project->scope_statement);
+        $this->assertEqualsCanonicalizing([$pm->id, $coOwner->id], $project->owners->pluck('id')->all());
         $this->assertDatabaseHas('audit_logs', ['auditable_id' => $tender->id, 'event' => 'project_initiated']);
         $this->assertDatabaseHas('audit_logs', ['auditable_id' => $project->id, 'event' => 'project_initiated']);
     }

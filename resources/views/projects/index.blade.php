@@ -32,7 +32,7 @@
                 <td>@include('partials._badge', ['enum' => $p->status])</td>
                 <td>{{ $p->current_phase?->label() ?? '—' }}</td>
                 <td>@include('partials._progress', ['value' => $p->progress])</td>
-                <td>{{ $p->owner?->name ?? '—' }}</td>
+                <td>{{ $p->owners->pluck("name")->join(", ") ?: "—" }}</td>
                 <td>@include('partials._due', ['model' => $p, 'label' => 'Deadline'])</td>
                 <td>
                     @if($p->tender)<a href="{{ route('tenders.show', $p->tender) }}">Tender</a>

@@ -9,7 +9,12 @@ Read `README.md` first. Key structure:
   `HasOptimisticLock` (`updateWithLock($data, $expectedVersion)`),
   `HasComments` / `HasAttachments` (polymorphic), `LogsAudit`
   (`$model->audit($event, $old, $new)`; auto "created"), `RollsUpProgress`
-  (cached `progress`, driven by `ProgressRollupObserver`).
+  (cached `progress`, driven by `ProgressRollupObserver`),
+  `HasOwners` (many-to-many `owners()` via `<model>_owners`; `ownedBy` scope).
+- **Ownership** — Tender, Project use `HasOwners`; Task has `assignees()`
+  (`task_assignees` pivot, `assignedTo` scope). ServiceRequest / TrackerItem
+  / Subtask keep a single `owner_id` / `assignee_id`. Controllers sync from
+  `owner_ids[]` / `assignee_ids[]`; `partials/_owner_picker` renders the boxes.
 - **RBAC** — `config/permissions.php` catalog + role defaults; gates registered
   in `AppServiceProvider`; per-user grants/revokes in `permission_overrides`.
   Check with `->middleware('can:x')`, `$user->can('x')`, `@can`.

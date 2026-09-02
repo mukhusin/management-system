@@ -39,7 +39,6 @@ class ProjectInitiator
             $project = Project::create([
                 'tender_id' => $tender->id,
                 'service_line_id' => $tender->service_line_id,
-                'owner_id' => $tender->owner_id ?? $actor->id,
                 'name' => $tender->title,
                 'type' => $this->typeFor($tender->serviceLine),
                 'description' => $tender->description,
@@ -50,6 +49,9 @@ class ProjectInitiator
                 'target_deadline' => $tender->deadline_date,
                 'current_phase' => null,
             ]);
+
+            $owners = $tender->owners->pluck('id');
+            $project->owners()->sync($owners->isEmpty() ? [$actor->id] : $owners->all());
 
             $this->applyPhaseDefault($project);
             $this->seedScopeItems($project, $tender->scope_statement);
@@ -75,7 +77,6 @@ class ProjectInitiator
             $project = Project::create([
                 'service_request_id' => $request->id,
                 'service_line_id' => $request->service_line_id,
-                'owner_id' => $request->owner_id ?? $actor->id,
                 'name' => $request->summary,
                 'type' => $this->typeFor($request->serviceLine),
                 'description' => $request->details,
@@ -85,6 +86,8 @@ class ProjectInitiator
                 'currency' => $request->currency,
                 'current_phase' => null,
             ]);
+
+            $project->owners()->sync([$request->owner_id ?? $actor->id]);
 
             $this->applyPhaseDefault($project);
             $this->seedScopeItems($project, $request->details ?: $request->summary);

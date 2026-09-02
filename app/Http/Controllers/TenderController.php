@@ -23,7 +23,7 @@ class TenderController extends Controller
             ->state($request->input('state'))
             ->ownedBy($request->input('owner'))
             ->when($request->boolean('open_only', false), fn ($q) => $q->open())
-            ->with(['owner', 'serviceLine'])
+            ->with(['owners', 'serviceLine'])
             ->orderByRaw('deadline_date IS NULL, deadline_date asc')
             ->orderByDesc('id')
             ->paginate(20)
@@ -41,7 +41,7 @@ class TenderController extends Controller
 
     public function show(Tender $tender)
     {
-        $tender->load(['owner', 'serviceLine', 'project', 'comments.user', 'comments.mentions', 'attachments.user', 'auditLogs.user']);
+        $tender->load(['owners', 'serviceLine', 'project', 'comments.user', 'comments.mentions', 'attachments.user', 'auditLogs.user']);
 
         return view('tenders.show', [
             'tender' => $tender,
@@ -67,6 +67,7 @@ class TenderController extends Controller
         $data['external_id'] = ! empty($data['url']) ? sha1($data['url']) : (string) Str::uuid();
 
         $tender = Tender::create($data);
+        $tender->syncOwners($request->input('owner_ids', []));
 
         return redirect()->route('tenders.show', $tender)->with('status', 'Tender registered.');
     }
@@ -90,6 +91,7 @@ class TenderController extends Controller
         }
 
         $tender->updateWithLock($data, (int) $request->integer('lock_version'));
+        $tender->syncOwners($request->input('owner_ids', []));
         $tender->refresh()->auditBaselineChanges($before);
 
         return redirect()->route('tenders.show', $tender)->with('status', 'Tender updated.');
@@ -137,7 +139,8 @@ class TenderController extends Controller
             'country' => ['nullable', 'string', 'max:100'],
             'sector' => ['nullable', 'string', 'max:100'],
             'service_line_id' => ['nullable', 'exists:service_lines,id'],
-            'owner_id' => ['nullable', 'exists:users,id'],
+            'owner_ids' => ['array'],
+            'owner_ids.*' => ['integer', 'exists:users,id'],
             'priority' => ['nullable', 'string', 'in:'.implode(',', Priority::values())],
             'value' => ['nullable', 'numeric', 'min:0'],
             'estimated_value' => ['nullable', 'numeric', 'min:0'],

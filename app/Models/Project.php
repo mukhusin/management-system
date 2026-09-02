@@ -10,6 +10,7 @@ use App\Models\Concerns\HasAttachments;
 use App\Models\Concerns\HasComments;
 use App\Models\Concerns\HasDueDate;
 use App\Models\Concerns\HasOptimisticLock;
+use App\Models\Concerns\HasOwners;
 use App\Models\Concerns\LogsAudit;
 use App\Models\Concerns\RollsUpProgress;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,11 +27,12 @@ class Project extends Model
     use HasDueDate;
     use HasFactory;
     use HasOptimisticLock;
+    use HasOwners;
     use LogsAudit;
     use RollsUpProgress;
 
     protected $fillable = [
-        'tender_id', 'service_request_id', 'service_line_id', 'owner_id',
+        'tender_id', 'service_request_id', 'service_line_id',
         'name', 'type', 'status', 'priority', 'current_phase',
         'description', 'scope_statement', 'client', 'budget', 'currency',
         'start_date', 'target_deadline', 'completed_at', 'next_action', 'remarks',
@@ -72,11 +74,6 @@ class Project extends Model
     public function serviceLine(): BelongsTo
     {
         return $this->belongsTo(ServiceLine::class);
-    }
-
-    public function owner(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'owner_id');
     }
 
     public function milestones(): HasMany

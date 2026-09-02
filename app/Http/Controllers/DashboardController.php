@@ -27,18 +27,18 @@ class DashboardController extends Controller
             'Open service requests' => ServiceRequest::whereNotIn('state', [ServiceRequestState::Engaged->value, ServiceRequestState::Declined->value, ServiceRequestState::Lost->value])->count(),
             'Active projects' => Project::where('status', ProjectStatus::Active->value)->count(),
             'Overdue tasks' => Task::open()->whereDate('due_date', '<', now())->count(),
-            'My open tasks' => Task::open()->where('assignee_id', $user->id)->count(),
+            'My open tasks' => Task::open()->assignedTo($user->id)->count(),
         ];
 
         $tenderFunnel = Tender::selectRaw('state, count(*) as n')->groupBy('state')->pluck('n', 'state');
         $requestFunnel = ServiceRequest::selectRaw('state, count(*) as n')->groupBy('state')->pluck('n', 'state');
 
         $myTasks = Task::open()->with('featureSet.milestone.project')
-            ->where('assignee_id', $user->id)->orderBy('due_date')->limit(10)->get();
-        $myProjects = Project::where('owner_id', $user->id)
+            ->assignedTo($user->id)->orderBy('due_date')->limit(10)->get();
+        $myProjects = Project::ownedBy($user->id)
             ->whereIn('status', [ProjectStatus::NotStarted->value, ProjectStatus::Active->value, ProjectStatus::OnHold->value])
             ->get();
-        $myTenders = Tender::where('owner_id', $user->id)
+        $myTenders = Tender::ownedBy($user->id)
             ->whereIn('state', array_map(fn ($s) => $s->value, $openTenderStates))->get();
 
         $upcoming = $this->upcomingDue();

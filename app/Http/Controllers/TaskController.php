@@ -13,7 +13,7 @@ class TaskController extends Controller
     public function mine(Request $request)
     {
         $tasks = Task::with('featureSet.milestone.project')
-            ->where('assignee_id', $request->user()->id)
+            ->assignedTo($request->user()->id)
             ->orderByRaw("FIELD(status, 'blocked','in_progress','code_review','todo','done')")
             ->orderBy('due_date')
             ->get()
@@ -31,7 +31,8 @@ class TaskController extends Controller
 
         $data = $this->rules($request);
         $data['position'] = (int) $featureSet->tasks()->max('position') + 1;
-        $featureSet->tasks()->create($data);
+        $task = $featureSet->tasks()->create($data);
+        $task->assignees()->sync($request->input('assignee_ids', []));
 
         return back()->with('status', 'Task added.');
     }
@@ -40,6 +41,9 @@ class TaskController extends Controller
     {
         $this->authorizeEdit($request, $task);
         $task->updateWithLock($this->rules($request), (int) $request->integer('lock_version'));
+        if ($request->has('assignee_ids')) {
+            $task->assignees()->sync($request->input('assignee_ids', []));
+        }
 
         return back()->with('status', 'Task updated.');
     }
@@ -66,7 +70,7 @@ class TaskController extends Controller
         $user = $request->user();
         abort_unless(
             $user->can('projects.manage_work')
-            || ($user->can('work.execute') && $task->assignee_id === $user->id),
+            || ($user->can('work.execute') && $task->isAssignedTo($user)),
             403,
         );
     }
@@ -76,7 +80,8 @@ class TaskController extends Controller
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'assignee_id' => ['nullable', 'exists:users,id'],
+            'assignee_ids' => ['array'],
+            'assignee_ids.*' => ['integer', 'exists:users,id'],
             'status' => ['required', 'in:'.implode(',', TaskStatus::values())],
             'priority' => ['required', 'in:'.implode(',', Priority::values())],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],

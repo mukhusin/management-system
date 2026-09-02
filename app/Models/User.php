@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -80,9 +81,9 @@ class User extends Authenticatable
 
     // --- Work relations --------------------------------------------------
 
-    public function ownedTenders(): HasMany
+    public function ownedTenders(): BelongsToMany
     {
-        return $this->hasMany(Tender::class, 'owner_id');
+        return $this->belongsToMany(Tender::class, 'tender_owners');
     }
 
     public function ownedServiceRequests(): HasMany
@@ -90,14 +91,14 @@ class User extends Authenticatable
         return $this->hasMany(ServiceRequest::class, 'owner_id');
     }
 
-    public function ownedProjects(): HasMany
+    public function ownedProjects(): BelongsToMany
     {
-        return $this->hasMany(Project::class, 'owner_id');
+        return $this->belongsToMany(Project::class, 'project_owners');
     }
 
-    public function assignedTasks(): HasMany
+    public function assignedTasks(): BelongsToMany
     {
-        return $this->hasMany(Task::class, 'assignee_id');
+        return $this->belongsToMany(Task::class, 'task_assignees');
     }
 
     public function assignedSubtasks(): HasMany

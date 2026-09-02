@@ -21,7 +21,7 @@
 
     <p class="meta">
         {{ $tender->client ?? $tender->buyer }} @if($tender->country) · {{ $tender->country }} @endif<br>
-        Owner: {{ $tender->owner?->name ?? 'unassigned' }}<br>
+        Owners: {{ $tender->ownerNames() }}<br>
         @include('partials._due', ['model' => $tender, 'label' => 'Deadline'])<br>
         @if($tender->value || $tender->estimated_value)
             Value: {{ number_format($tender->value ?? $tender->estimated_value, 2) }} {{ $tender->currency }}<br>

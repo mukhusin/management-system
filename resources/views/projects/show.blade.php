@@ -23,7 +23,7 @@
         </div>
     </div>
     <p class="meta">
-        Client: {{ $project->client ?? '—' }} · Owner: {{ $project->owner?->name ?? 'unassigned' }}<br>
+        Client: {{ $project->client ?? '—' }} · Owners: {{ $project->ownerNames() }}<br>
         @include('partials._due', ['model' => $project, 'label' => 'Deadline'])
         @if($project->budget) · Budget: {{ number_format($project->budget, 2) }} {{ $project->currency }}@endif<br>
         @if($project->tender)Origin: <a href="{{ route('tenders.show', $project->tender) }}">tender</a>@endif
@@ -153,7 +153,7 @@
                                     </form>
                                     {{ $task->title }}
                                     @include('partials._badge', ['enum' => $task->status])
-                                    <span class="muted">{{ $task->assignee?->name ?? 'unassigned' }} · {{ $task->progress }}%</span>
+                                    <span class="muted">{{ $task->assigneeNames() }} · {{ $task->progress }}%</span>
                                     @foreach ($task->scopeItems as $si)<span class="chip" title="{{ $si->description }}">{{ $si->code }}</span>@endforeach
                                     @if($task->subtasks->count())
                                         <ul>
@@ -184,8 +184,8 @@
                                     <form method="POST" action="{{ route('feature-sets.tasks.store', $fs) }}" class="form-grid" style="margin-top:0.5rem;">
                                         @csrf
                                         <div class="full"><input type="text" name="title" placeholder="Task title" required></div>
-                                        <div><select name="assignee_id"><option value="">Unassigned</option>@foreach($members as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach</select></div>
-                                        <div><select name="status">@foreach($taskStatuses as $s)<option value="{{ $s['value'] }}">{{ $s['label'] }}</option>@endforeach</select></div>
+                                        <div><label>Assignees</label><select name="assignee_ids[]" multiple size="3">@foreach($members as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach</select></div>
+                                        <div><label>Status</label><select name="status">@foreach($taskStatuses as $s)<option value="{{ $s['value'] }}">{{ $s['label'] }}</option>@endforeach</select></div>
                                         <div><select name="priority">@foreach(\App\Enums\Priority::options() as $p)<option value="{{ $p['value'] }}" @selected($p['value']==='medium')>{{ $p['label'] }}</option>@endforeach</select></div>
                                         <div><input type="date" name="due_date"></div>
                                         <div><button class="small">Add task</button></div>

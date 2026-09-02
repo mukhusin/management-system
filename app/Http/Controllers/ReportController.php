@@ -30,11 +30,11 @@ class ReportController extends Controller
         $projectsByStatus = Project::selectRaw('status, count(*) n, round(avg(progress)) avg_progress')
             ->groupBy('status')->get()->keyBy('status');
 
-        $workload = User::withCount(['assignedTasks as open_tasks' => fn ($q) => $q->where('status', '!=', 'done')])
+        $workload = User::withCount(['assignedTasks as open_tasks' => fn ($q) => $q->where('tasks.status', '!=', 'done')])
             ->orderByDesc('open_tasks')->get();
 
         $overdue = Task::open()->whereDate('due_date', '<', now())
-            ->with('assignee', 'featureSet.milestone.project')->orderBy('due_date')->get();
+            ->with('assignees', 'featureSet.milestone.project')->orderBy('due_date')->get();
 
         $serviceLines = ServiceLine::withCount(['tenders', 'serviceRequests', 'projects'])
             ->withSum('projects as pipeline_budget', 'budget')->orderBy('position')->get();

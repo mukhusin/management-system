@@ -19,10 +19,7 @@
             <select name="service_line_id"><option value="">—</option>
                 @foreach ($serviceLines as $l)<option value="{{ $l->id }}" @selected((string)old('service_line_id',$tender->service_line_id)===(string)$l->id)>{{ $l->name }}</option>@endforeach
             </select></div>
-        <div><label>Owner</label>
-            <select name="owner_id"><option value="">—</option>
-                @foreach ($owners as $o)<option value="{{ $o->id }}" @selected((string)old('owner_id',$tender->owner_id)===(string)$o->id)>{{ $o->name }}</option>@endforeach
-            </select></div>
+        <div class="full">@include('partials._owner_picker', ['users' => $owners, 'name' => 'owner_ids', 'label' => 'Owners', 'selected' => old('owner_ids', $tender->exists ? $tender->owners->pluck('id')->all() : [])])</div>
         <div><label>Priority</label>
             <select name="priority">
                 @foreach (\App\Enums\Priority::options() as $p)<option value="{{ $p['value'] }}" @selected(old('priority', $tender->priority?->value)===$p['value'])>{{ $p['label'] }}</option>@endforeach

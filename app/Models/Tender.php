@@ -12,6 +12,7 @@ use App\Models\Concerns\LogsAudit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HasOwners;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -22,10 +23,11 @@ class Tender extends Model
     use HasDueDate;
     use HasFactory;
     use HasOptimisticLock;
+    use HasOwners;
     use LogsAudit;
 
     protected $fillable = [
-        'user_id', 'owner_id', 'source', 'external_id', 'title', 'description',
+        'user_id', 'source', 'external_id', 'title', 'description',
         'country', 'sector', 'buyer', 'client', 'value', 'estimated_value',
         'currency', 'published_date', 'deadline_date', 'url', 'raw',
         'state', 'priority', 'scope_statement', 'service_line_id',
@@ -57,11 +59,6 @@ class Tender extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function owner(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'owner_id');
     }
 
     public function serviceLine(): BelongsTo
@@ -103,11 +100,6 @@ class Tender extends Model
     public function scopeState(Builder $query, TenderState|string|null $state): Builder
     {
         return $state ? $query->where('state', $state instanceof TenderState ? $state->value : $state) : $query;
-    }
-
-    public function scopeOwnedBy(Builder $query, $userId): Builder
-    {
-        return $userId ? $query->where('owner_id', $userId) : $query;
     }
 
     public function scopeOpen(Builder $query): Builder

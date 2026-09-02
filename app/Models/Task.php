@@ -24,7 +24,7 @@ class Task extends Model
     use RollsUpProgress;
 
     protected $fillable = [
-        'feature_set_id', 'assignee_id', 'title', 'description',
+        'feature_set_id', 'title', 'description',
         'status', 'priority', 'progress', 'due_date', 'position',
     ];
 
@@ -52,9 +52,27 @@ class Task extends Model
         return $this->belongsTo(FeatureSet::class);
     }
 
-    public function assignee(): BelongsTo
+    public function assignees(): BelongsToMany
     {
-        return $this->belongsTo(User::class, 'assignee_id');
+        return $this->belongsToMany(User::class, 'task_assignees')->orderBy('name');
+    }
+
+    public function isAssignedTo(User|int|null $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $id = $user instanceof User ? $user->id : $user;
+
+        return $this->relationLoaded('assignees')
+            ? $this->assignees->contains('id', $id)
+            : $this->assignees()->whereKey($id)->exists();
+    }
+
+    public function assigneeNames(): string
+    {
+        return $this->assignees->pluck('name')->join(', ') ?: 'unassigned';
     }
 
     public function subtasks(): HasMany
@@ -99,6 +117,8 @@ class Task extends Model
 
     public function scopeAssignedTo(Builder $query, $userId): Builder
     {
-        return $query->where('assignee_id', $userId);
+        return $userId
+            ? $query->whereHas('assignees', fn (Builder $q) => $q->whereKey($userId))
+            : $query;
     }
 }
