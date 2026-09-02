@@ -43,7 +43,9 @@ class DashboardController extends Controller
 
         $upcoming = $this->upcomingDue();
         $serviceLineBreakdown = $this->serviceLineBreakdown();
-        $recentAudit = AuditLog::with(['user', 'auditable'])->latest('id')->limit(12)->get();
+        $recentAudit = AuditLog::with(['user', 'auditable'])
+            ->whereNotIn('event', ['created'])
+            ->latest('id')->limit(12)->get();
 
         return view('dashboard.index', compact(
             'kpis', 'tenderFunnel', 'requestFunnel', 'myTasks', 'myProjects', 'myTenders',

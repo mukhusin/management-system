@@ -1,19 +1,6 @@
 {{-- Progressive-enhancement markdown editor: toolbar, @mention autocomplete,
      server-rendered preview. Enhances every <textarea data-editor>. No deps. --}}
 @once
-@push('head')
-<style>
-    .mdw { border: 1px solid var(--border); border-radius: 6px; background: #fff; }
-    .mdw-bar { display: flex; gap: 0.2rem; padding: 0.3rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-    .mdw-bar button { background: #f3f4f6; color: #374151; border: 1px solid var(--border); padding: 0.15rem 0.5rem; font-size: 0.8rem; border-radius: 4px; cursor: pointer; }
-    .mdw-bar button.on { background: var(--accent); color: #fff; }
-    .mdw textarea { border: 0 !important; width: 100%; display: block; resize: vertical; }
-    .mdw-preview { padding: 0.6rem; font-size: 0.9rem; }
-    .mdw-menu { position: absolute; z-index: 50; background: #fff; border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); min-width: 200px; max-height: 200px; overflow: auto; }
-    .mdw-menu div { padding: 0.35rem 0.6rem; cursor: pointer; font-size: 0.85rem; }
-    .mdw-menu div.sel, .mdw-menu div:hover { background: #eef2ff; }
-</style>
-@endpush
 @push('foot')
 <script>
 (function () {

@@ -29,7 +29,8 @@
         @if($project->tender)Origin: <a href="{{ route('tenders.show', $project->tender) }}">tender</a>@endif
         @if($project->serviceRequest)Origin: <a href="{{ route('service-requests.show', $project->serviceRequest) }}">service request</a>@endif
     </p>
-    @if($project->scope_statement)<p><strong>Scope:</strong> {{ $project->scope_statement }}</p>@endif
+    @if($project->scope_statement && $project->scopeItems->isEmpty())<p class="scope-text"><strong>Scope</strong>
+{{ $project->scope_statement }}</p>@endif
 
     @if ($project->usesPhases() && $project->current_phase)
         <div class="steps">

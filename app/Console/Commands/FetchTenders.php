@@ -17,6 +17,13 @@ class FetchTenders extends Command
 
     public function handle(): int
     {
+        // Ingested notices are a bulk system import, not a user action —
+        // don't flood the audit trail with a "created" event per row.
+        return Tender::withoutCreationAudit(fn () => $this->fetchAll());
+    }
+
+    private function fetchAll(): int
+    {
         $only = $this->option('source');
 
         /** @var TenderSourceInterface[] $sources */

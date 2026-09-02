@@ -11,9 +11,29 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 trait LogsAudit
 {
+    /** Set false around bulk system operations (e.g. tender ingestion). */
+    public static bool $auditCreation = true;
+
     public static function bootLogsAudit(): void
     {
-        static::created(fn ($model) => $model->audit('created'));
+        static::created(function ($model) {
+            if (static::$auditCreation) {
+                $model->audit('created');
+            }
+        });
+    }
+
+    /** Run a callback without recording "created" audit events. */
+    public static function withoutCreationAudit(callable $callback): mixed
+    {
+        $previous = static::$auditCreation;
+        static::$auditCreation = false;
+
+        try {
+            return $callback();
+        } finally {
+            static::$auditCreation = $previous;
+        }
     }
 
     /** Models override this with the fields whose edits must be audited. */

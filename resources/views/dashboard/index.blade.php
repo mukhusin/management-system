@@ -13,23 +13,11 @@
 <div class="row" style="margin-top:1.5rem;">
     <div class="card" style="flex:1; min-width:280px;">
         <h2 style="margin-top:0;">Tender pipeline</h2>
-        @foreach (\App\Enums\TenderState::cases() as $s)
-            <div class="bar-row">
-                <span class="lab">{{ $s->label() }}</span>
-                <span class="bar" style="width:{{ 12 + ($tenderFunnel[$s->value] ?? 0) * 18 }}px;"></span>
-                {{ $tenderFunnel[$s->value] ?? 0 }}
-            </div>
-        @endforeach
+        @include('partials._bars', ['rows' => collect(\App\Enums\TenderState::cases())->map(fn ($s) => ['label' => $s->label(), 'n' => (int) ($tenderFunnel[$s->value] ?? 0)])])
     </div>
     <div class="card" style="flex:1; min-width:280px;">
         <h2 style="margin-top:0;">Service request pipeline</h2>
-        @foreach (\App\Enums\ServiceRequestState::cases() as $s)
-            <div class="bar-row">
-                <span class="lab">{{ $s->label() }}</span>
-                <span class="bar" style="width:{{ 12 + ($requestFunnel[$s->value] ?? 0) * 18 }}px;"></span>
-                {{ $requestFunnel[$s->value] ?? 0 }}
-            </div>
-        @endforeach
+        @include('partials._bars', ['rows' => collect(\App\Enums\ServiceRequestState::cases())->map(fn ($s) => ['label' => $s->label(), 'n' => (int) ($requestFunnel[$s->value] ?? 0)])])
     </div>
 </div>
 

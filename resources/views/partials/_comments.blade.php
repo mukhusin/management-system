@@ -17,13 +17,13 @@
                 <div class="by">{{ $comment->user->name }}
                     <span class="at">{{ $comment->created_at->diffForHumans() }}</span>
                     @if ($comment->deletableBy(auth()->user()))
-                        <form method="POST" action="{{ route('comments.destroy', $comment) }}" style="display:inline;">
+                        <form method="POST" action="{{ route('comments.destroy', $comment) }}" style="display:inline; margin-left:.4rem;">
                             @csrf @method('DELETE')
-                            <button class="ghost small danger" style="border:none; background:none; color:var(--c-red); padding:0;">delete</button>
+                            <button type="submit" class="link" style="color:var(--c-red); font-size:.75rem;">delete</button>
                         </form>
                     @endif
                 </div>
-                <div>{!! $comment->renderedBody() !!}</div>
+                <div class="md-body">{!! $comment->renderedBody() !!}</div>
             </li>
         @empty
             <li class="muted">No comments yet.</li>

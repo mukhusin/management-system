@@ -7,18 +7,12 @@
 <div class="row">
     <div class="card" style="flex:1; min-width:280px;">
         <h2 style="margin-top:0;">Tender funnel</h2>
-        @foreach ($tenderFunnel as $row)
-            <div class="bar-row"><span class="lab">{{ $row['label'] }}</span>
-                <span class="bar" style="width:{{ 12 + $row['n'] * 18 }}px;"></span> {{ $row['n'] }}</div>
-        @endforeach
+        @include('partials._bars', ['rows' => $tenderFunnel])
         <p class="muted">Win rate: {{ $tenderWinRate === null ? 'n/a' : $tenderWinRate.'%' }}</p>
     </div>
     <div class="card" style="flex:1; min-width:280px;">
         <h2 style="margin-top:0;">Service request funnel</h2>
-        @foreach ($requestFunnel as $row)
-            <div class="bar-row"><span class="lab">{{ $row['label'] }}</span>
-                <span class="bar" style="width:{{ 12 + $row['n'] * 18 }}px;"></span> {{ $row['n'] }}</div>
-        @endforeach
+        @include('partials._bars', ['rows' => $requestFunnel])
         <p class="muted">Win rate: {{ $requestWinRate === null ? 'n/a' : $requestWinRate.'%' }}</p>
     </div>
 </div>
