@@ -34,7 +34,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::middleware('auth')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
 
-    // Tenders
+    // Tenders — Opportunities (external feed) + Pipeline (adopted / tracked)
+    Route::get('opportunities', [TenderController::class, 'opportunities'])->name('opportunities.index');
+    Route::post('opportunities/fetch', [TenderController::class, 'fetch'])->name('opportunities.fetch')->middleware('can:tenders.ingest');
+    Route::patch('opportunities/{tender}/pursue', [TenderController::class, 'pursue'])->name('opportunities.pursue')->middleware('can:tenders.create');
+
     Route::get('tenders', [TenderController::class, 'index'])->name('tenders.index');
     Route::get('tenders/create', [TenderController::class, 'create'])->name('tenders.create')->middleware('can:tenders.create');
     Route::post('tenders', [TenderController::class, 'store'])->name('tenders.store')->middleware('can:tenders.create');

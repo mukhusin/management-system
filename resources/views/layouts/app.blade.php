@@ -24,7 +24,14 @@
             </div>
             <div class="nav-group">
                 <div class="nav-label">Pipeline</div>
-                <a href="{{ route('tenders.index') }}" @class(['nav-item', 'active' => request()->routeIs('tenders.*')])>@include('partials._icon', ['name' => 'tender']) Tenders</a>
+                @php($tenderActive = request()->routeIs('tenders.*','opportunities.*'))
+                <details class="nav-tree" @if($tenderActive) open @endif>
+                    <summary @class(['nav-item', 'active' => $tenderActive])>
+                        @include('partials._icon', ['name' => 'tender']) Tenders
+                    </summary>
+                    <a href="{{ route('opportunities.index') }}" @class(['nav-item', 'nav-sub', 'active' => request()->routeIs('opportunities.*')])>Opportunities</a>
+                    <a href="{{ route('tenders.index') }}" @class(['nav-item', 'nav-sub', 'active' => request()->routeIs('tenders.*')])>Pipeline</a>
+                </details>
                 <a href="{{ route('service-requests.index') }}" @class(['nav-item', 'active' => request()->routeIs('service-requests.*')])>@include('partials._icon', ['name' => 'request']) Service Requests</a>
             </div>
             <div class="nav-group">

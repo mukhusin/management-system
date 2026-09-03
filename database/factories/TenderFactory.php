@@ -24,6 +24,7 @@ class TenderFactory extends Factory
             'value' => fake()->numberBetween(10000, 500000),
             'currency' => 'USD',
             'deadline_date' => now()->addDays(fake()->numberBetween(5, 60)),
+            'adopted_at' => now(),
         ];
     }
 
@@ -35,5 +36,16 @@ class TenderFactory extends Factory
     public function won(): static
     {
         return $this->inState(TenderState::Won);
+    }
+
+    /** An unclaimed opportunity fresh from an external source. */
+    public function opportunity(): static
+    {
+        return $this->state(fn () => [
+            'source' => 'world_bank',
+            'state' => TenderState::Draft,
+            'adopted_at' => null,
+            'adopted_by' => null,
+        ]);
     }
 }

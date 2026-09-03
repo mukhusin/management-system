@@ -10,20 +10,24 @@ use App\Models\User;
 use App\Services\ProjectInitiator;
 use App\Services\TenderStateMachine;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 
 class TenderController extends Controller
 {
+    /**
+     * The pipeline — tenders someone chose to pursue, tracked through their
+     * lifecycle.
+     */
     public function index(Request $request)
     {
         $tenders = Tender::query()
+            ->adopted()
             ->search($request->input('q'))
-            ->fromSource($request->input('source'))
-            ->inCountry($request->input('country'))
             ->state($request->input('state'))
             ->ownedBy($request->input('owner'))
             ->when($request->boolean('open_only', false), fn ($q) => $q->open())
-            ->with(['owners', 'serviceLine'])
+            ->with(['owners', 'serviceLine', 'project'])
             ->orderByRaw('deadline_date IS NULL, deadline_date asc')
             ->orderByDesc('id')
             ->paginate(20)
@@ -31,21 +35,68 @@ class TenderController extends Controller
 
         return view('tenders.index', [
             'tenders' => $tenders,
-            'sources' => Tender::query()->distinct()->orderBy('source')->pluck('source'),
-            'countries' => Tender::query()->whereNotNull('country')->distinct()->orderBy('country')->pluck('country')->take(80),
             'owners' => User::orderBy('name')->get(),
             'states' => TenderState::options(),
-            'filters' => $request->only(['q', 'source', 'country', 'state', 'owner', 'open_only']),
+            'filters' => $request->only(['q', 'state', 'owner', 'open_only']),
         ]);
+    }
+
+    /**
+     * Opportunities — everything ingested from external sources that nobody
+     * has picked up yet.
+     */
+    public function opportunities(Request $request)
+    {
+        // First visit with an empty feed: pull once so the page isn't blank.
+        if (Tender::opportunities()->doesntExist() && Tender::query()->doesntExist()) {
+            $this->runFetch();
+        }
+
+        $tenders = Tender::query()
+            ->opportunities()
+            ->search($request->input('q'))
+            ->fromSource($request->input('source'))
+            ->inCountry($request->input('country'))
+            ->when($request->boolean('open_only', true), fn ($q) => $q->open())
+            ->with('serviceLine')
+            ->orderByRaw('deadline_date IS NULL, deadline_date asc')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('tenders.opportunities', [
+            'tenders' => $tenders,
+            'sources' => Tender::opportunities()->distinct()->orderBy('source')->pluck('source'),
+            'countries' => Tender::opportunities()->whereNotNull('country')->distinct()->orderBy('country')->pluck('country')->take(80),
+            'lastFetched' => Tender::opportunities()->max('updated_at'),
+            'filters' => $request->only(['q', 'source', 'country', 'open_only']),
+        ]);
+    }
+
+    public function fetch(Request $request)
+    {
+        $summary = $this->runFetch();
+
+        return redirect()->route('opportunities.index')->with('status', $summary);
+    }
+
+    public function pursue(Request $request, Tender $tender)
+    {
+        abort_if($tender->isAdopted(), 409);
+
+        $tender->adopt($request->user());
+
+        return redirect()->route('tenders.show', $tender)
+            ->with('status', 'Added to the pipeline — you can now track it through its lifecycle.');
     }
 
     public function show(Tender $tender)
     {
-        $tender->load(['owners', 'serviceLine', 'project', 'comments.user', 'comments.mentions', 'attachments.user', 'auditLogs.user']);
+        $tender->load(['owners', 'adopter', 'serviceLine', 'project', 'comments.user', 'comments.mentions', 'attachments.user', 'auditLogs.user']);
 
         return view('tenders.show', [
             'tender' => $tender,
-            'nextStates' => $tender->state?->allowedNext() ?? [],
+            'nextStates' => $tender->isAdopted() ? ($tender->state?->allowedNext() ?? []) : [],
         ]);
     }
 
@@ -65,11 +116,13 @@ class TenderController extends Controller
         $data['source'] = 'manual';
         $data['user_id'] = $request->user()->id;
         $data['external_id'] = ! empty($data['url']) ? sha1($data['url']) : (string) Str::uuid();
+        $data['adopted_at'] = now();
+        $data['adopted_by'] = $request->user()->id;
 
         $tender = Tender::create($data);
-        $tender->syncOwners($request->input('owner_ids', []));
+        $tender->syncOwners($request->input('owner_ids') ?: [$request->user()->id]);
 
-        return redirect()->route('tenders.show', $tender)->with('status', 'Tender registered.');
+        return redirect()->route('tenders.show', $tender)->with('status', 'Tender added to the pipeline.');
     }
 
     public function edit(Tender $tender)
@@ -83,7 +136,7 @@ class TenderController extends Controller
 
     public function update(Request $request, Tender $tender)
     {
-        $data = $this->validateData($request, $tender);
+        $data = $this->validateData($request);
         $before = $tender->getRawOriginal();
 
         if ($this->baselineChanged($tender, $data) && $request->user()->cannot('tenders.edit_baseline')) {
@@ -97,20 +150,10 @@ class TenderController extends Controller
         return redirect()->route('tenders.show', $tender)->with('status', 'Tender updated.');
     }
 
-    private function baselineChanged(Tender $tender, array $data): bool
-    {
-        foreach ($tender->baselineFields() as $field) {
-            if (array_key_exists($field, $data)
-                && (string) $data[$field] !== (string) $tender->getRawOriginal($field)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public function transition(Request $request, Tender $tender, TenderStateMachine $machine)
     {
+        abort_unless($tender->isAdopted(), 409, 'Pursue this opportunity before moving it through the lifecycle.');
+
         $validated = $request->validate([
             'state' => ['required', 'string'],
             'note' => ['nullable', 'string', 'max:2000'],
@@ -126,6 +169,30 @@ class TenderController extends Controller
         $project = $initiator->fromTender($tender, request()->user());
 
         return redirect()->route('projects.show', $project)->with('status', 'Project initiated from tender.');
+    }
+
+    private function runFetch(): string
+    {
+        @set_time_limit(0);
+        Artisan::call('tenders:fetch');
+
+        $line = collect(explode("\n", Artisan::output()))
+            ->map(trim(...))
+            ->last(fn ($l) => str_starts_with($l, 'Done'));
+
+        return $line ?: 'Opportunities refreshed from external sources.';
+    }
+
+    private function baselineChanged(Tender $tender, array $data): bool
+    {
+        foreach ($tender->baselineFields() as $field) {
+            if (array_key_exists($field, $data)
+                && (string) $data[$field] !== (string) $tender->getRawOriginal($field)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function validateData(Request $request): array

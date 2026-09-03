@@ -53,11 +53,20 @@ temporary password is shown once).
 
 ## The modules
 
-- **Tenders** (`/tenders`) — state machine `Draft → Under Review → Submitted →
-  Won → Lost/Cancelled`; only legal transitions are offered and each is
-  written to the audit log. Editing a tender's value/deadline needs
-  `tenders.edit_baseline` and is audited. A **Won** tender can be promoted to
-  a project in one click, inheriting client / scope / budget / deadline.
+- **Tenders** — split in two under the sidebar:
+  - **Opportunities** (`/opportunities`) — everything ingested from external
+    sources that nobody has picked up. First visit with an empty feed pulls
+    once; **Fetch latest** (needs `tenders.ingest`) refreshes on demand. Each
+    row has a **Pursue** button.
+  - **Pipeline** (`/tenders`) — tenders someone chose to pursue (`Pursue`, or
+    registered by hand). Only pipeline tenders run the state machine
+    `Draft → Under Review → Submitted → Won → Lost/Cancelled`; only legal
+    transitions are offered and each is written to the audit log. Editing a
+    tender's value/deadline needs `tenders.edit_baseline` and is audited. A
+    **Won** tender promotes to a project in one click, inheriting client /
+    scope / budget / deadline.
+  - `tenders.adopted_at` / `adopted_by` marks the crossover; the audit event
+    is `adopted`.
 - **Service Requests** (`/service-requests`) — inbound enquiries with their own
   machine `New → Qualified → Quoted → Won → Engaged`, `Declined`/`Lost` exits.
   A **Won** request promotes to a project and moves to `Engaged`.

@@ -31,11 +31,13 @@ class Tender extends Model
         'country', 'sector', 'buyer', 'client', 'value', 'estimated_value',
         'currency', 'published_date', 'deadline_date', 'url', 'raw',
         'state', 'priority', 'scope_statement', 'service_line_id',
+        'adopted_at', 'adopted_by',
     ];
 
     protected $casts = [
         'published_date' => 'date',
         'deadline_date' => 'date',
+        'adopted_at' => 'datetime',
         'raw' => 'array',
         'value' => 'decimal:2',
         'estimated_value' => 'decimal:2',
@@ -69,6 +71,47 @@ class Tender extends Model
     public function project(): HasOne
     {
         return $this->hasOne(Project::class);
+    }
+
+    public function adopter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'adopted_by');
+    }
+
+    // --- Adoption (opportunity -> pipeline) ---------------------------
+
+    public function isAdopted(): bool
+    {
+        return $this->adopted_at !== null;
+    }
+
+    /**
+     * Move an ingested opportunity into the pipeline so it can be tracked
+     * through its lifecycle.
+     */
+    public function adopt(User $actor): void
+    {
+        if ($this->isAdopted()) {
+            return;
+        }
+
+        $this->forceFill(['adopted_at' => now(), 'adopted_by' => $actor->id])->save();
+
+        if ($this->owners()->doesntExist()) {
+            $this->owners()->attach($actor->id);
+        }
+
+        $this->audit('adopted', null, ['by' => $actor->name]);
+    }
+
+    public function scopeAdopted(Builder $query): Builder
+    {
+        return $query->whereNotNull('adopted_at');
+    }
+
+    public function scopeOpportunities(Builder $query): Builder
+    {
+        return $query->whereNull('adopted_at');
     }
 
     // --- Scopes --------------------------------------------------------

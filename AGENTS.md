@@ -18,6 +18,10 @@ Read `README.md` first. Key structure:
 - **RBAC** — `config/permissions.php` catalog + role defaults; gates registered
   in `AppServiceProvider`; per-user grants/revokes in `permission_overrides`.
   Check with `->middleware('can:x')`, `$user->can('x')`, `@can`.
+- **Tenders** — `Tender::opportunities()` (external, `adopted_at` null) vs
+  `->adopted()` (pipeline). `$tender->adopt($user)` crosses over; the state
+  machine / promotion only apply to adopted tenders. `TenderController::index`
+  = pipeline, `opportunities` = feed, `pursue` = adopt.
 - **State machines** — `TenderStateMachine`, `ServiceRequestStateMachine`
   (`apply($model, $toState, $actor, $note)`); transitions defined on the enums.
 - **Promotion** — `ProjectInitiator::fromTender()` / `fromServiceRequest()`;

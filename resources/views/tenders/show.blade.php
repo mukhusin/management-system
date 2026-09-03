@@ -2,26 +2,50 @@
 @section('title', $tender->title)
 
 @section('content')
-<p><a href="{{ route('tenders.index') }}">&larr; Tenders</a></p>
+<a class="back-link" href="{{ $tender->isAdopted() ? route('tenders.index') : route('opportunities.index') }}">
+    &larr; {{ $tender->isAdopted() ? 'Tender Pipeline' : 'Opportunities' }}
+</a>
+
+@unless ($tender->isAdopted())
+<div class="card" style="border-color:var(--accent); background:var(--accent-soft);">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <div>
+            <strong>This is an external opportunity.</strong>
+            <div class="muted">Pursue it to move it into the pipeline and track it through its lifecycle.</div>
+        </div>
+        @can('tenders.create')
+        <form method="POST" action="{{ route('opportunities.pursue', $tender) }}">
+            @csrf @method('PATCH')
+            <button type="submit">Pursue this opportunity</button>
+        </form>
+        @endcan
+    </div>
+</div>
+@endunless
 
 <div class="card">
     <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
         <div>
             <h1 style="margin-bottom:0.3rem;">{{ $tender->title }}</h1>
             <div>
-                @include('partials._badge', ['enum' => $tender->state])
+                @if($tender->isAdopted())
+                    @include('partials._badge', ['enum' => $tender->state])
+                @else
+                    <span class="badge badge--gray">Opportunity</span>
+                @endif
                 @if($tender->priority)@include('partials._badge', ['enum' => $tender->priority])@endif
+                <span class="badge badge--gray">{{ ucfirst(str_replace('_',' ',$tender->source)) }}</span>
                 @if($tender->serviceLine)<span class="badge badge--gray">{{ $tender->serviceLine->name }}</span>@endif
             </div>
         </div>
         <div style="text-align:right;">
-            @can('tenders.edit')<a href="{{ route('tenders.edit', $tender) }}" class="btn ghost small">Edit</a>@endcan
+            @if($tender->isAdopted())@can('tenders.edit')<a href="{{ route('tenders.edit', $tender) }}" class="btn ghost small">Edit</a>@endcan @endif
         </div>
     </div>
 
     <p class="meta">
         {{ $tender->client ?? $tender->buyer }} @if($tender->country) · {{ $tender->country }} @endif<br>
-        Owners: {{ $tender->ownerNames() }}<br>
+        @if($tender->isAdopted())Owners: {{ $tender->ownerNames() }} · Pursued by {{ $tender->adopter?->name ?? '—' }} {{ $tender->adopted_at?->diffForHumans() }}<br>@endif
         @include('partials._due', ['model' => $tender, 'label' => 'Deadline'])<br>
         @if($tender->value || $tender->estimated_value)
             Value: {{ number_format($tender->value ?? $tender->estimated_value, 2) }} {{ $tender->currency }}<br>
@@ -33,6 +57,7 @@
     @if($tender->description)<p>{{ $tender->description }}</p>@endif
 </div>
 
+@if($tender->isAdopted())
 @can('tenders.transition')
 <div class="card">
     <h2 style="margin-top:0;">Lifecycle</h2>
@@ -65,6 +90,7 @@
     @endif
 </div>
 @endcan
+@endif
 
 @include('partials._comments', ['subject' => $tender, 'subjectType' => 'tenders'])
 @include('partials._attachments', ['subject' => $tender, 'subjectType' => 'tenders'])

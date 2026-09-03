@@ -19,6 +19,7 @@ class TenderPaginationTest extends TestCase
                 'external_id' => "wb-{$i}",
                 'title' => "Notice number {$i}",
                 'deadline_date' => null, // exercise the "nulls last" ordering path
+                'adopted_at' => now(), // pipeline items
             ]);
         }
     }
