@@ -13,6 +13,8 @@
         'import'    => '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
         'bell'      => '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
         'menu'      => '<line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>',
+        'clock'     => '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14.2"/>',
+        'wallet'    => '<rect x="3" y="6.5" width="18" height="12.5" rx="2.2"/><path d="M3 9.5h14.5a2.5 2.5 0 0 1 0 5H16a1.6 1.6 0 0 1 0-3.2h5"/>',
     ];
 @endphp
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $paths[$name] ?? '' !!}</svg>

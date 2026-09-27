@@ -28,6 +28,14 @@ Read `README.md` first. Key structure:
   Dashboard's "Opportunities intelligence" (donut by country, top-buyer
   ledger, closing-by-week bars — `partials/_donut` / `_vbars`, pure CSS,
   no chart lib) reads the same `opportunities()` scope.
+- **Design tokens** `public/css/app.css` `:root` — Inter font (Google Fonts
+  link in both layouts), indigo/blue palette, 16px card radius / 10px
+  control radius. Everything (badges, buttons, tables, donut, kpi tiles)
+  reads these vars, so a palette/radius change there re-themes the whole
+  app; don't hardcode colors in view-level `style=` attributes.
+  `.kpi` tiles take `['label','value','icon','color','note'?]` (icon name
+  from `partials/_icon`, color = gray/blue/green/amber/red/purple).
+  Bump the `?v=N` on the `app.css` link in both layouts when it changes.
 - **State machines** — `TenderStateMachine`, `ServiceRequestStateMachine`
   (`apply($model, $toState, $actor, $note)`); transitions defined on the enums.
 - **Promotion** — `ProjectInitiator::fromTender()` / `fromServiceRequest()`;

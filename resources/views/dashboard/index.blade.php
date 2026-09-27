@@ -2,11 +2,24 @@
 @section('title', 'Dashboard')
 
 @section('content')
-<h1>Dashboard</h1>
+<div class="page-heading">
+    <span class="page-heading-icon">@include('partials._icon', ['name' => 'dashboard'])</span>
+    <div>
+        <h1 class="page-heading-title">Dashboard</h1>
+        <p class="page-heading-sub">Where the pipeline, delivery work and the external feed stand right now.</p>
+    </div>
+</div>
 
 <div class="kpi-grid">
-    @foreach ($kpis as $label => $n)
-        <div class="kpi"><div class="n">{{ $n }}</div><div class="l">{{ $label }}</div></div>
+    @foreach ($kpis as $kpi)
+        <div class="kpi">
+            <div class="kpi-top">
+                <span class="l">{{ $kpi['label'] }}</span>
+                <span class="kpi-icon kpi-icon--{{ $kpi['color'] }}">@include('partials._icon', ['name' => $kpi['icon']])</span>
+            </div>
+            <div class="n">{{ $kpi['value'] }}</div>
+            @if (!empty($kpi['note']))<div class="note">{{ $kpi['note'] }}</div>@endif
+        </div>
     @endforeach
 </div>
 

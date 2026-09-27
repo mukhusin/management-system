@@ -23,12 +23,18 @@ class DashboardController extends Controller
         $openTenderStates = [TenderState::Draft, TenderState::UnderReview, TenderState::Submitted];
 
         $kpis = [
-            'Tenders in pipeline' => Tender::adopted()->whereIn('state', array_map(fn ($s) => $s->value, $openTenderStates))->count(),
-            'Open opportunities' => Tender::opportunities()->open()->count(),
-            'Open service requests' => ServiceRequest::whereNotIn('state', [ServiceRequestState::Engaged->value, ServiceRequestState::Declined->value, ServiceRequestState::Lost->value])->count(),
-            'Active projects' => Project::where('status', ProjectStatus::Active->value)->count(),
-            'Overdue tasks' => Task::open()->whereDate('due_date', '<', now())->count(),
-            'My open tasks' => Task::open()->assignedTo($user->id)->count(),
+            ['label' => 'Tenders in pipeline', 'icon' => 'tender', 'color' => 'blue',
+                'value' => Tender::adopted()->whereIn('state', array_map(fn ($s) => $s->value, $openTenderStates))->count()],
+            ['label' => 'Open opportunities', 'icon' => 'tracker', 'color' => 'green',
+                'value' => Tender::opportunities()->open()->count()],
+            ['label' => 'Open service requests', 'icon' => 'request', 'color' => 'purple',
+                'value' => ServiceRequest::whereNotIn('state', [ServiceRequestState::Engaged->value, ServiceRequestState::Declined->value, ServiceRequestState::Lost->value])->count()],
+            ['label' => 'Active projects', 'icon' => 'project', 'color' => 'blue',
+                'value' => Project::where('status', ProjectStatus::Active->value)->count()],
+            ['label' => 'Overdue tasks', 'icon' => 'clock', 'color' => 'red',
+                'value' => Task::open()->whereDate('due_date', '<', now())->count(), 'note' => 'past their due date'],
+            ['label' => 'My open tasks', 'icon' => 'mywork', 'color' => 'gray',
+                'value' => Task::open()->assignedTo($user->id)->count(), 'note' => 'assigned to you'],
         ];
 
         $tenderFunnel = Tender::adopted()->selectRaw('state, count(*) as n')->groupBy('state')->pluck('n', 'state');

@@ -3,7 +3,7 @@
     Pure-CSS donut via conic-gradient — no JS, no chart library.
 --}}
 @php
-    $palette = ['#4f46e5', '#7c3aed', '#2563eb', '#15803d', '#b45309', '#dc2626', '#0ea5e9', '#6b7280'];
+    $palette = ['#3b6fe4', '#5b4fe0', '#16a34a', '#d97706', '#dc2626', '#0ea5e9', '#9333ea', '#64748b'];
     $total = array_sum($counts) ?: 1;
     $acc = 0;
     $stops = [];

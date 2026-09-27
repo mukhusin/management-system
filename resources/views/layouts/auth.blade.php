@@ -4,19 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sign in') &mdash; EMREC TPMS</title>
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=7">
     <style>
         body { display: grid; grid-template-columns: 1fr 460px; min-height: 100vh; }
         .auth-hero {
             position: relative; color: #fff; padding: 3rem;
             display: flex; flex-direction: column; justify-content: flex-end;
-            background: #0f1729 url('{{ asset('about-archi.webp') }}') center / cover no-repeat;
+            background: var(--sidebar-bg) url('{{ asset('about-archi.webp') }}') center / cover no-repeat;
         }
-        .auth-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, rgba(15,23,41,.55), rgba(15,23,41,.9)); }
+        .auth-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, rgba(15,24,48,.55), rgba(15,24,48,.9)); }
         .auth-hero > * { position: relative; }
         .auth-hero .mark {
             width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
-            background: linear-gradient(135deg, #6366f1, #4f46e5); font-weight: 800; margin-bottom: 1.25rem;
+            background: var(--accent); font-weight: 800; margin-bottom: 1.25rem;
         }
         .auth-hero h2 { font-size: 1.5rem; margin: 0 0 .5rem; color: #fff; }
         .auth-hero p { color: #b7bdca; max-width: 30rem; margin: 0; }
