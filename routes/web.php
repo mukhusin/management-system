@@ -38,6 +38,8 @@ Route::middleware('auth')->group(function () {
     Route::get('opportunities', [TenderController::class, 'opportunities'])->name('opportunities.index');
     Route::post('opportunities/fetch', [TenderController::class, 'fetch'])->name('opportunities.fetch')->middleware('can:tenders.ingest');
     Route::patch('opportunities/{tender}/pursue', [TenderController::class, 'pursue'])->name('opportunities.pursue')->middleware('can:tenders.create');
+    Route::patch('opportunities/{tender}/save', [TenderController::class, 'toggleSave'])->name('opportunities.save');
+    Route::patch('opportunities/{tender}/dismiss', [TenderController::class, 'toggleDismiss'])->name('opportunities.dismiss');
 
     Route::get('tenders', [TenderController::class, 'index'])->name('tenders.index');
     Route::get('tenders/create', [TenderController::class, 'create'])->name('tenders.create')->middleware('can:tenders.create');

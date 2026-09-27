@@ -57,7 +57,11 @@ temporary password is shown once).
   - **Opportunities** (`/opportunities`) — everything ingested from external
     sources that nobody has picked up. First visit with an empty feed pulls
     once; **Fetch latest** (needs `tenders.ingest`) refreshes on demand. Each
-    row has a **Pursue** button.
+    row has **Save** (personal shortlist), **Hide** (personal dismissal —
+    doesn't affect what anyone else sees) and **Pursue** buttons. Filters
+    add "closing within N days", min value, and "saved only". The dashboard
+    has an "Opportunities intelligence" panel: a by-country breakdown, top
+    procuring entities, and a closing-dates-by-week chart.
   - **Pipeline** (`/tenders`) — tenders someone chose to pursue (`Pursue`, or
     registered by hand). Only pipeline tenders run the state machine
     `Draft → Under Review → Submitted → Won → Lost/Cancelled`; only legal

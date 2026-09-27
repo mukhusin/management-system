@@ -48,10 +48,46 @@ class DashboardController extends Controller
             ->whereNotIn('event', ['created'])
             ->latest('id')->limit(12)->get();
 
+        [$opportunitiesByCountry, $topBuyers, $closingByWeek] = $this->opportunitiesIntel();
+
         return view('dashboard.index', compact(
             'kpis', 'tenderFunnel', 'requestFunnel', 'myTasks', 'myProjects', 'myTenders',
             'upcoming', 'serviceLineBreakdown', 'recentAudit',
+            'opportunitiesByCountry', 'topBuyers', 'closingByWeek',
         ));
+    }
+
+    /**
+     * A quick read of the external feed: where it's concentrated and what's
+     * closing soon — helps a tender officer triage without opening the feed.
+     */
+    private function opportunitiesIntel(): array
+    {
+        $byCountry = Tender::opportunities()->open()->whereNotNull('country')
+            ->selectRaw('country, count(*) as n')->groupBy('country')
+            ->orderByDesc('n')->limit(6)->pluck('n', 'country');
+
+        $topBuyers = Tender::opportunities()->open()->whereNotNull('buyer')
+            ->selectRaw('buyer, count(*) as n')->groupBy('buyer')
+            ->orderByDesc('n')->limit(8)->pluck('n', 'buyer');
+
+        $weeks = 8;
+        $counts = array_fill(0, $weeks, 0);
+        Tender::opportunities()->whereNotNull('deadline_date')
+            ->where('deadline_date', '>=', now()->toDateString())
+            ->pluck('deadline_date')
+            ->each(function ($date) use (&$counts, $weeks) {
+                $week = (int) floor(now()->diffInDays($date) / 7);
+                if ($week < $weeks) {
+                    $counts[$week]++;
+                }
+            });
+        $closingByWeek = collect($counts)->map(fn ($n, $i) => [
+            'label' => $i === 0 ? 'This wk' : "+{$i}w",
+            'n' => $n,
+        ]);
+
+        return [$byCountry, $topBuyers, $closingByWeek];
     }
 
     private function upcomingDue()

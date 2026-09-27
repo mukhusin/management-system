@@ -22,6 +22,28 @@
 </div>
 
 <div class="row">
+    <div class="card" style="flex:1.2; min-width:300px;">
+        <h2 style="margin-top:0;">Opportunities by country</h2>
+        @include('partials._donut', ['counts' => $opportunitiesByCountry->all(), 'unit' => 'open'])
+        <p class="muted" style="margin:.8rem 0 0;"><a href="{{ route('opportunities.index') }}">Browse the full feed &rarr;</a></p>
+    </div>
+    <div class="card" style="flex:1; min-width:280px;">
+        <h2 style="margin-top:0;">Top procuring entities</h2>
+        @if ($topBuyers->isEmpty())
+            <p class="muted">No open opportunities with a named buyer.</p>
+        @else
+            @foreach ($topBuyers as $buyer => $n)
+                <div class="ledger-row"><span>{{ $buyer }}</span><b>{{ $n }}</b></div>
+            @endforeach
+        @endif
+    </div>
+    <div class="card" style="flex:1; min-width:280px;">
+        <h2 style="margin-top:0;">Opportunities closing &mdash; next 8 weeks</h2>
+        @include('partials._vbars', ['bars' => $closingByWeek])
+    </div>
+</div>
+
+<div class="row">
     <div class="card" style="flex:1; min-width:280px;">
         <h2 style="margin-top:0;">My open tasks</h2>
         <ul style="list-style:none; padding:0; margin:0;">

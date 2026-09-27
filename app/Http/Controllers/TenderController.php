@@ -52,13 +52,19 @@ class TenderController extends Controller
             $this->runFetch();
         }
 
+        $user = $request->user();
+
         $tenders = Tender::query()
             ->opportunities()
             ->search($request->input('q'))
             ->fromSource($request->input('source'))
             ->inCountry($request->input('country'))
+            ->minValue($request->float('min_value') ?: null)
+            ->closingWithinDays($request->filled('closing_within') ? (int) $request->input('closing_within') : null)
             ->when($request->boolean('open_only', true), fn ($q) => $q->open())
-            ->with('serviceLine')
+            ->when($request->boolean('saved_only'), fn ($q) => $q->savedByUser($user->id))
+            ->unless($request->boolean('show_hidden'), fn ($q) => $q->notDismissedBy($user->id))
+            ->with(['serviceLine', 'savedBy', 'dismissedBy'])
             ->orderByRaw('deadline_date IS NULL, deadline_date asc')
             ->orderByDesc('id')
             ->paginate(20)
@@ -69,8 +75,23 @@ class TenderController extends Controller
             'sources' => Tender::opportunities()->distinct()->orderBy('source')->pluck('source'),
             'countries' => Tender::opportunities()->whereNotNull('country')->distinct()->orderBy('country')->pluck('country')->take(80),
             'lastFetched' => Tender::opportunities()->max('updated_at'),
-            'filters' => $request->only(['q', 'source', 'country', 'open_only']),
+            'hiddenCount' => Tender::opportunities()->whereHas('dismissedBy', fn ($q) => $q->whereKey($user->id))->count(),
+            'filters' => $request->only(['q', 'source', 'country', 'open_only', 'min_value', 'closing_within', 'saved_only', 'show_hidden']),
         ]);
+    }
+
+    public function toggleSave(Request $request, Tender $tender)
+    {
+        $saved = $tender->toggleSavedBy($request->user());
+
+        return back()->with('status', $saved ? 'Saved to your shortlist.' : 'Removed from your shortlist.');
+    }
+
+    public function toggleDismiss(Request $request, Tender $tender)
+    {
+        $dismissed = $tender->toggleDismissedBy($request->user());
+
+        return back()->with('status', $dismissed ? 'Hidden from your feed.' : 'Restored to your feed.');
     }
 
     public function fetch(Request $request)

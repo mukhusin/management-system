@@ -22,6 +22,12 @@ Read `README.md` first. Key structure:
   `->adopted()` (pipeline). `$tender->adopt($user)` crosses over; the state
   machine / promotion only apply to adopted tenders. `TenderController::index`
   = pipeline, `opportunities` = feed, `pursue` = adopt.
+  Per-user, feed-only: `savedBy()`/`dismissedBy()` (`tender_saves` /
+  `tender_dismissals` pivots, `toggleSavedBy`/`toggleDismissedBy`) — shortlist
+  or hide an opportunity for yourself without touching the shared record.
+  Dashboard's "Opportunities intelligence" (donut by country, top-buyer
+  ledger, closing-by-week bars — `partials/_donut` / `_vbars`, pure CSS,
+  no chart lib) reads the same `opportunities()` scope.
 - **State machines** — `TenderStateMachine`, `ServiceRequestStateMachine`
   (`apply($model, $toState, $actor, $note)`); transitions defined on the enums.
 - **Promotion** — `ProjectInitiator::fromTender()` / `fromServiceRequest()`;

@@ -279,6 +279,30 @@ table.grid tbody tr:hover td { background: var(--surface-2); }
 .bar-row .lab { width: 150px; color: var(--muted); flex-shrink: 0; }
 .bar-row .bar { background: var(--accent); height: 14px; border-radius: 4px; }
 
+/* ---------- Donut (pure CSS conic-gradient) ---------- */
+.donut-wrap { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; }
+.donut { border-radius: 50%; position: relative; flex-shrink: 0; }
+.donut-center { position: absolute; inset: 16px; background: var(--surface); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.donut-center b { font-size: 1rem; color: var(--ink); }
+.donut-center span { font-size: .68rem; color: var(--faint); }
+.legend { display: flex; flex-direction: column; gap: .4rem; font-size: .8rem; }
+.legend-row { display: flex; align-items: center; gap: .5rem; color: var(--ink-soft); }
+.legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.legend-row b { margin-left: auto; color: var(--ink); font-weight: 600; }
+
+/* ---------- Vertical bar chart (e.g. closings by week) ---------- */
+.vbars { display: flex; align-items: flex-end; gap: .7rem; height: 110px; margin-top: .3rem; }
+.vbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.vbar-fill { width: 100%; max-width: 24px; background: var(--accent-soft); border-radius: 5px 5px 0 0; }
+.vbar-fill.hi { background: var(--accent); }
+.vbar-label { font-size: .68rem; color: var(--faint); margin-top: .4rem; text-align: center; }
+
+/* ---------- Ledger (ranked label/count list) ---------- */
+.ledger-row { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .45rem 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+.ledger-row:last-child { border-bottom: 0; }
+.ledger-row span:first-child { color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ledger-row b { font-size: .78rem; color: var(--accent); background: var(--accent-soft); padding: .1rem .55rem; border-radius: 999px; min-width: 1.8rem; text-align: center; flex-shrink: 0; }
+
 /* ---------- Threads (comments / audit / signoffs) ---------- */
 .thread { list-style: none; padding: 0; margin: 0; }
 .thread > li { border-top: 1px solid var(--border); padding: .8rem 0; }

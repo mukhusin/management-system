@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\HasOwners;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Tender extends Model
@@ -112,6 +113,74 @@ class Tender extends Model
     public function scopeOpportunities(Builder $query): Builder
     {
         return $query->whereNull('adopted_at');
+    }
+
+    // --- Per-user shortlist / hide (opportunities feed only) ----------
+
+    public function savedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'tender_saves');
+    }
+
+    public function dismissedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'tender_dismissals');
+    }
+
+    public function isSavedBy(User $user): bool
+    {
+        return $this->relationLoaded('savedBy')
+            ? $this->savedBy->contains('id', $user->id)
+            : $this->savedBy()->whereKey($user->id)->exists();
+    }
+
+    public function isDismissedBy(User $user): bool
+    {
+        return $this->relationLoaded('dismissedBy')
+            ? $this->dismissedBy->contains('id', $user->id)
+            : $this->dismissedBy()->whereKey($user->id)->exists();
+    }
+
+    public function toggleSavedBy(User $user): bool
+    {
+        $attached = ! $this->savedBy()->whereKey($user->id)->exists();
+        $this->savedBy()->toggle($user->id);
+
+        return $attached;
+    }
+
+    public function toggleDismissedBy(User $user): bool
+    {
+        $dismissed = ! $this->dismissedBy()->whereKey($user->id)->exists();
+        $this->dismissedBy()->toggle($user->id);
+
+        return $dismissed;
+    }
+
+    public function scopeSavedByUser(Builder $query, int $userId): Builder
+    {
+        return $query->whereHas('savedBy', fn (Builder $q) => $q->whereKey($userId));
+    }
+
+    public function scopeNotDismissedBy(Builder $query, ?int $userId): Builder
+    {
+        return $userId
+            ? $query->whereDoesntHave('dismissedBy', fn (Builder $q) => $q->whereKey($userId))
+            : $query;
+    }
+
+    // --- Lightweight query parsing (Opportunities "Ask" box) ----------
+
+    public function scopeMinValue(Builder $query, ?float $min): Builder
+    {
+        return $min ? $query->where('value', '>=', $min) : $query;
+    }
+
+    public function scopeClosingWithinDays(Builder $query, ?int $days): Builder
+    {
+        return $days === null
+            ? $query
+            : $query->whereNotNull('deadline_date')->whereBetween('deadline_date', [now()->toDateString(), now()->addDays($days)->toDateString()]);
     }
 
     // --- Scopes --------------------------------------------------------
